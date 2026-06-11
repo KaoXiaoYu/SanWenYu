@@ -18,6 +18,7 @@ Returns:
 
 import argparse
 import base64
+import html
 import json
 import os
 import re
@@ -149,6 +150,26 @@ def download_image(url: str) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=15) as resp:
         return resp.read()
+
+
+def normalize_image_url(url: str) -> str:
+    if url.startswith("//"):
+        return "https:" + url
+    if url.startswith("/"):
+        return "https://codeforces.com" + url
+    return url
+
+
+def image_bytes_to_data_url(image_bytes: bytes, fallback_mime: str = "image/png") -> str:
+    mime = fallback_mime
+    try:
+        img = Image.open(BytesIO(image_bytes))
+        fmt = (img.format or "").lower()
+        if fmt in {"png", "jpeg", "gif", "webp"}:
+            mime = "image/jpeg" if fmt == "jpeg" else f"image/{fmt}"
+    except Exception:
+        pass
+    return image_to_base64_url(image_bytes, mime=mime)
 
 
 def preprocess_formula_png(raw_bytes: bytes, upscale: int = 2) -> bytes:
@@ -339,6 +360,53 @@ def html_to_text(ps_html: str) -> str:
     return text
 
 
+def _strip_statement_header(ps_html: str) -> str:
+    """Remove CF title/header so unsolved posts do not reveal identity."""
+    return re.sub(
+        r'^\s*<div class="header">[\s\S]*?<div class="output-file">[\s\S]*?</div>\s*</div>',
+        "",
+        ps_html,
+        count=1,
+    ).strip()
+
+
+def build_render_html(ps_html: str, image_entries: list[dict], formula_results: list[dict]) -> str:
+    """Build HTML suitable for Chromium + MathJax screenshot rendering."""
+    result_html = _strip_statement_header(ps_html)
+    result_html = re.sub(r"<script[\s\S]*?</script>", "", result_html, flags=re.I)
+    entries = sorted(image_entries, key=lambda x: x["start"], reverse=True)
+    offset = len(ps_html) - len(result_html)
+
+    for img_entry in entries:
+        start = img_entry["start"] - offset
+        end = img_entry["end"] - offset
+        if start < 0 or end > len(result_html) or start >= end:
+            continue
+        cls = img_entry.get("class", "")
+        src = normalize_image_url(img_entry.get("src", ""))
+        if "tex-formula" in cls:
+            matching = [r for r in formula_results if r.get("src") == img_entry.get("src")]
+            latex = (matching[0].get("latex", "") if matching else "").strip()
+            replacement = (
+                f'<span class="tex-formula-text">\\({html.escape(latex)}\\)</span>'
+                if latex and not latex.startswith("[")
+                else '<span class="tex-formula-text">[FORMULA]</span>'
+            )
+        else:
+            try:
+                data_url = image_bytes_to_data_url(download_image(src))
+                replacement = (
+                    f'<img class="{html.escape(cls)}" src="{data_url}" '
+                    'style="max-width:100%;height:auto;" />'
+                )
+            except Exception:
+                replacement = '<span class="missing-image">[IMAGE]</span>'
+        result_html = result_html[:start] + replacement + result_html[end:]
+
+    result_html = re.sub(r'style="[^"]*"', "", result_html)
+    return result_html.strip()
+
+
 # ── Main pipeline ───────────────────────────────────────────────────────
 
 def process_problem(
@@ -424,11 +492,7 @@ def process_problem(
     # Replace all image tags with their text representation (reverse order)
     result_html = ps_html
     all_images = sorted(formulas + graphics, key=lambda x: x["start"], reverse=True)
-    all_results_iter = iter(sorted(
-        formula_results,
-        key=lambda x: _find_match_index(x["src"], formulas + graphics),
-        reverse=True,
-    ))
+    render_html = build_render_html(ps_html, formulas + graphics, formula_results)
 
     for img_entry in all_images:
         # Find matching result by src URL
@@ -450,6 +514,7 @@ def process_problem(
         "formulas_processed": len(formulas) - formulas_failed,
         "formulas_failed": formulas_failed,
         "formula_details": formula_results,
+        "render_html": render_html,
         "text": plain_text,
         "text_length": len(plain_text),
     }

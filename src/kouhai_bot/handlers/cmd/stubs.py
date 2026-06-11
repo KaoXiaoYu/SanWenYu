@@ -98,12 +98,20 @@ async def handle_problem(group_id: int, user_id: int, sender: dict,
             notes_message = daily_msg.get("notes_message")
             snake_enabled = bool(daily_msg.get("snake_enabled", True))
             if isinstance(post_msg, str) and isinstance(sample_messages, list):
+                statement_render_html = ""
+                try:
+                    stmt_path = os.path.join(cfg.data_dir, "statements", f"{pid}.json")
+                    with open(stmt_path, encoding="utf-8") as f:
+                        statement_render_html = str(json.load(f).get("render_html", "") or "")
+                except Exception:
+                    statement_render_html = ""
                 fwd_resp, node_payload = await _send_problem_forward_card(
                     group_id=group_id,
                     post_msg=post_msg,
                     sample_messages=[str(item) for item in sample_messages],
                     notes_message=str(notes_message) if isinstance(notes_message, str) else "",
                     snake_enabled=snake_enabled,
+                    problem_render_html=statement_render_html,
                 )
                 if fwd_resp:
                     if pid:

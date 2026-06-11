@@ -37,7 +37,11 @@ from ...napcat.client import (
     send_private_msg,
 )
 from ...problems.picker import _normalize_sample_block
-from ...statement_render import image_message_from_path, render_text_to_png
+from ...statement_render import (
+    image_message_from_path,
+    render_statement_html_to_png,
+    render_text_to_png,
+)
 from .submit import run_group_state_update
 
 logger = logging.getLogger("kouhai-bot.cmd.newproblem")
@@ -310,6 +314,7 @@ async def _send_problem_forward_card(
     sample_messages: list[str],
     notes_message: str = "",
     snake_enabled: bool = True,
+    problem_render_html: str = "",
 ) -> tuple[int | None, dict]:
     cfg = get_config()
 
@@ -317,7 +322,7 @@ async def _send_problem_forward_card(
 
     async def _send_text_node(text: str, slug: str) -> int | None:
         try:
-            image_path = render_text_to_png(text, group_id=group_id, slug=slug)
+            image_path = await render_text_to_png(text, group_id=group_id, slug=slug)
             rendered_paths.append(image_path)
             resp = await send_private_msg(cfg.bot_qq, image_message_from_path(image_path))
             if resp:
@@ -326,7 +331,23 @@ async def _send_problem_forward_card(
             logger.warning(f"[group_{group_id}] Render/send image node failed ({slug}): {e}")
         return await send_private_msg(cfg.bot_qq, build_plain_message(text))
 
-    self_resp = await _send_text_node(post_msg, "problem")
+    if problem_render_html:
+        try:
+            image_path = await render_statement_html_to_png(
+                problem_render_html,
+                lead_text=post_msg,
+                group_id=group_id,
+                slug="problem",
+            )
+            rendered_paths.append(image_path)
+            self_resp = await send_private_msg(cfg.bot_qq, image_message_from_path(image_path))
+        except Exception as e:
+            logger.warning(f"[group_{group_id}] Render/send statement HTML failed: {e}")
+            self_resp = None
+        if not self_resp:
+            self_resp = await _send_text_node(post_msg, "problem")
+    else:
+        self_resp = await _send_text_node(post_msg, "problem")
     if not self_resp:
         return None, {}
 
@@ -472,6 +493,7 @@ async def _do_daily_post_locked(
     pid = str(picked_state.get("today", "") or "")
     sample_messages: list[str] = []
     notes_message = ""
+    problem_render_html = ""
     try:
         if pid:
             schedule_prefetch_editorial(pid)
@@ -490,6 +512,7 @@ async def _do_daily_post_locked(
             limits_text = f"Time: {tl}, Memory: {ml}"
             sample_messages = _build_sample_messages(stmt)
             notes_message = await _build_notes_message(stmt)
+            problem_render_html = str(stmt.get("render_html", "") or "")
 
         summary, model_tag = await summarize_problem(stmt_text, input_text, limits_text)
         if not summary:
@@ -520,6 +543,7 @@ async def _do_daily_post_locked(
         sample_messages=sample_messages,
         notes_message=notes_message,
         snake_enabled=True,
+        problem_render_html=problem_render_html,
     )
     if not fwd_resp:
         logger.error(f"[group_{group_id}] Problem forward-card send failed, falling back to direct")
