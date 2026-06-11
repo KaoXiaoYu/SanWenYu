@@ -1,6 +1,6 @@
 """Render problem cards into QQ-friendly PNG images.
 
-The preferred path renders Markdown/HTML through Firefox so LaTeX, emoji and
+The preferred path renders Markdown/HTML through Chromium so LaTeX, emoji and
 embedded statement images look like they would in a browser. A small Pillow
 fallback remains for deployments that have not installed Playwright yet.
 """
@@ -105,26 +105,7 @@ def _render_html_document_sync(html_doc: str, *, group_id: int, slug: str) -> st
 
     path = _output_path(html_doc, group_id=group_id, slug=slug)
     with sync_playwright() as p:
-        browser_name = os.environ.get("KOUHAI_RENDER_BROWSER", "firefox").strip().lower()
-        browser_types = {
-            "firefox": p.firefox,
-            "chromium": p.chromium,
-            "webkit": p.webkit,
-        }
-        order = [browser_name, "firefox", "chromium", "webkit"]
-        browser = None
-        last_error: Exception | None = None
-        for name in dict.fromkeys(order):
-            browser_type = browser_types.get(name)
-            if browser_type is None:
-                continue
-            try:
-                browser = browser_type.launch()
-                break
-            except Exception as exc:
-                last_error = exc
-        if browser is None:
-            raise last_error or RuntimeError("No Playwright browser is available")
+        browser = p.chromium.launch()
         page = browser.new_page(
             viewport={"width": 1040, "height": 2400},
             device_scale_factor=2,
@@ -285,12 +266,10 @@ def _html_to_plain_text(value: str) -> str:
 
 def _font(size: int, *, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     candidates = [
-        r"C:\Windows\Fonts\msyhbd.ttc" if bold else r"C:\Windows\Fonts\msyh.ttc",
-        r"C:\Windows\Fonts\seguiemj.ttf",
-        r"C:\Windows\Fonts\simsun.ttc",
-        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttf",
         "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/opentype/noto/SanWenYu.ttf",
+        
     ]
     for candidate in candidates:
         if candidate and os.path.exists(candidate):
