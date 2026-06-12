@@ -39,7 +39,7 @@ pip install -e .
 
 题面图片渲染使用 Playwright 打开浏览器页面，页面中用 MathJax 渲染 LaTeX 公式，再截图成 PNG。
 
-默认浏览器是 Firefox。安装 Firefox 渲染内核：
+默认浏览器是 Firefox。所有平台都需要先安装 Python 依赖，再安装 Playwright 管理的 Firefox 浏览器内核：
 
 ```bash
 python -m playwright install firefox
@@ -51,9 +51,82 @@ python -m playwright install firefox
 uv run python -m playwright install firefox
 ```
 
-渲染器默认读取环境变量 `KOUHAI_RENDER_BROWSER`，可选值：
+### Linux
+
+Linux 服务器建议直接安装 Playwright 的 Firefox 和系统依赖：
 
 ```bash
+python -m playwright install --with-deps firefox
+```
+
+如果你用 `uv`：
+
+```bash
+uv run python -m playwright install --with-deps firefox
+```
+
+`--with-deps` 会尝试安装 Firefox 无头运行所需的系统库，通常需要 `sudo` 权限。如果服务器不能自动安装依赖，可以手动安装常见依赖：
+
+```bash
+sudo apt update
+sudo apt install -y \
+  libgtk-3-0 libdbus-glib-1-2 libasound2 \
+  libx11-xcb1 libxcomposite1 libxdamage1 libxfixes3 \
+  libxrandr2 libgbm1 libnss3 libatk-bridge2.0-0 \
+  fonts-noto-cjk fonts-noto-color-emoji
+```
+
+Linux 服务器不需要桌面环境，Playwright 默认以 headless 模式启动 Firefox。建议显式指定：
+
+```bash
+export KOUHAI_RENDER_BROWSER=firefox
+```
+
+如果渲染出的中文是方块，安装中文字体：
+
+```bash
+sudo apt install -y fonts-noto-cjk
+```
+
+如果 emoji 不是彩色或显示为空白，安装 emoji 字体：
+
+```bash
+sudo apt install -y fonts-noto-color-emoji
+```
+
+如果在 Docker、极简云服务器或 CI 环境中运行，优先使用 Playwright 下载的 Firefox，不要依赖系统自带 Firefox；Playwright 下载的浏览器和 Playwright API 兼容性最好。
+
+### macOS
+
+macOS 上安装 Playwright Firefox：
+
+```bash
+python -m playwright install firefox
+```
+
+如果你用 `uv`：
+
+```bash
+uv run python -m playwright install firefox
+```
+
+macOS 一般不需要额外系统依赖。系统自带中文字体和 Apple Color Emoji，题面中的中文与 emoji 通常可以直接渲染。
+
+如果你使用 shell 启动机器人，建议写入环境变量：
+
+```bash
+export KOUHAI_RENDER_BROWSER=firefox
+```
+
+如果你用 launchd、pm2、systemd 之类的方式托管进程，需要把 `KOUHAI_RENDER_BROWSER=firefox` 写进对应服务配置里，而不是只在当前终端里 export。
+
+### 浏览器选择
+
+渲染器默认读取环境变量 `KOUHAI_RENDER_BROWSER`，可选值：
+
+Windows PowerShell:
+
+```powershell
 set KOUHAI_RENDER_BROWSER=firefox
 ```
 
@@ -63,7 +136,15 @@ Linux/macOS:
 export KOUHAI_RENDER_BROWSER=firefox
 ```
 
+可选值包括：
+
+- `firefox`
+- `chromium`
+- `webkit`
+
 如果 Firefox 启动失败，代码会依次尝试 Firefox、Chromium、WebKit。若所有 Playwright 浏览器都不可用，会退回到 Pillow 文本图片渲染；这个兜底模式不会真正渲染 LaTeX，也不能嵌入原题图片。
+
+### MathJax 网络要求
 
 注意：MathJax 当前从 CDN 加载。运行环境需要能访问：
 
@@ -72,6 +153,28 @@ https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js
 ```
 
 如果服务器不能联网，需要把 MathJax 文件下载到本地，并修改 `src/kouhai_bot/statement_render.py` 里的 `<script src="...">` 路径。
+
+### 快速自检
+
+安装后可以用下面的命令确认 Playwright 能启动 Firefox：
+
+```bash
+python -m playwright install firefox
+python -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.firefox.launch(); print('firefox ok'); b.close(); p.stop()"
+```
+
+如果使用 `uv`：
+
+```bash
+uv run python -m playwright install firefox
+uv run python -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.firefox.launch(); print('firefox ok'); b.close(); p.stop()"
+```
+
+Linux 上如果这一步报缺少系统库，优先重新运行：
+
+```bash
+python -m playwright install --with-deps firefox
+```
 
 ## 配置文件
 
