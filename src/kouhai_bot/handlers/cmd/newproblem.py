@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sys
 import time
 
@@ -39,12 +40,28 @@ from ...napcat.client import (
 from ...problems.picker import _normalize_sample_block
 from ...statement_render import (
     image_message_from_path,
-    render_statement_html_to_png,
     render_text_to_png,
 )
 from .submit import run_group_state_update
 
 logger = logging.getLogger("kouhai-bot.cmd.newproblem")
+
+_PROBLEM_EMOJI_RE = re.compile(
+    "["
+    "\U0001F000-\U0001FAFF"
+    "\U0001FC00-\U0001FFFF"
+    "\u2600-\u27BF"
+    "]",
+    re.UNICODE,
+)
+_KEYCAP_RE = re.compile(r"([0-9#*])[\uFE0E\uFE0F]?\u20E3")
+
+
+def _sanitize_problem_content(text: str) -> str:
+    """Remove emoji presentation from statement-related content."""
+    value = _KEYCAP_RE.sub(r"\1", text or "")
+    value = value.replace("\uFE0E", "").replace("\uFE0F", "").replace("\u20E3", "")
+    return _PROBLEM_EMOJI_RE.sub("", value).strip()
 
 # ── Cooldown ────────────────────────────────────────────────────────────
 
@@ -285,10 +302,10 @@ def _build_sample_messages(stmt: dict) -> list[str]:
         normalized_output = _normalize_sample_block(sample_output).rstrip("\n")
         text = (
             f"样例 {idx}\n"
-            f"Input:\n{normalized_input}\n\n"
-            f"Output:\n{normalized_output}"
+            f"输入：\n{normalized_input}\n\n"
+            f"输出：\n{normalized_output}"
         )
-        lines.append(text)
+        lines.append(_sanitize_problem_content(text))
     return lines
 
 
@@ -302,10 +319,10 @@ async def _build_notes_message(stmt: dict) -> str:
     except Exception as e:
         logger.warning("Notes translation failed, skipping notes node: %s", e)
         return ""
-    final_notes = (translated_notes or normalized_notes).strip()
+    final_notes = (translated_notes or "").strip()
     if not final_notes:
         return ""
-    return f"样例解释：\n{final_notes}"
+    return _sanitize_problem_content(f"样例解释：\n{final_notes}")
 
 
 async def _send_problem_forward_card(
@@ -314,7 +331,6 @@ async def _send_problem_forward_card(
     sample_messages: list[str],
     notes_message: str = "",
     snake_enabled: bool = True,
-    problem_render_html: str = "",
 ) -> tuple[int | None, dict]:
     cfg = get_config()
 
@@ -331,23 +347,7 @@ async def _send_problem_forward_card(
             logger.warning(f"[group_{group_id}] Render/send image node failed ({slug}): {e}")
         return await send_private_msg(cfg.bot_qq, build_plain_message(text))
 
-    if problem_render_html:
-        try:
-            image_path = await render_statement_html_to_png(
-                problem_render_html,
-                lead_text=post_msg,
-                group_id=group_id,
-                slug="problem",
-            )
-            rendered_paths.append(image_path)
-            self_resp = await send_private_msg(cfg.bot_qq, image_message_from_path(image_path))
-        except Exception as e:
-            logger.warning(f"[group_{group_id}] Render/send statement HTML failed: {e}")
-            self_resp = None
-        if not self_resp:
-            self_resp = await _send_text_node(post_msg, "problem")
-    else:
-        self_resp = await _send_text_node(post_msg, "problem")
+    self_resp = await _send_text_node(post_msg, "problem")
     if not self_resp:
         return None, {}
 
@@ -493,7 +493,6 @@ async def _do_daily_post_locked(
     pid = str(picked_state.get("today", "") or "")
     sample_messages: list[str] = []
     notes_message = ""
-    problem_render_html = ""
     try:
         if pid:
             schedule_prefetch_editorial(pid)
@@ -512,14 +511,13 @@ async def _do_daily_post_locked(
             limits_text = f"Time: {tl}, Memory: {ml}"
             sample_messages = _build_sample_messages(stmt)
             notes_message = await _build_notes_message(stmt)
-            problem_render_html = str(stmt.get("render_html", "") or "")
 
         summary, model_tag = await summarize_problem(stmt_text, input_text, limits_text)
         if not summary:
             logger.warning(f"[group_{group_id}] Summary 1st attempt failed, retrying...")
             summary, model_tag = await summarize_problem(stmt_text, input_text, limits_text)
         if summary:
-            desc = summary.strip()
+            desc = _sanitize_problem_content(summary)
             save_problem_summary(group_id, pid, desc)
         else:
             logger.warning(f"[group_{group_id}] Summary failed after retry")
@@ -543,7 +541,6 @@ async def _do_daily_post_locked(
         sample_messages=sample_messages,
         notes_message=notes_message,
         snake_enabled=True,
-        problem_render_html=problem_render_html,
     )
     if not fwd_resp:
         logger.error(f"[group_{group_id}] Problem forward-card send failed, falling back to direct")

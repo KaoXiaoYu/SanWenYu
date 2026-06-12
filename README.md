@@ -142,7 +142,7 @@ export KOUHAI_RENDER_BROWSER=firefox
 - `chromium`
 - `webkit`
 
-如果 Firefox 启动失败，代码会依次尝试 Firefox、Chromium、WebKit。若所有 Playwright 浏览器都不可用，会退回到 Pillow 文本图片渲染；这个兜底模式不会真正渲染 LaTeX，也不能嵌入原题图片。
+如果 Firefox 启动失败，代码会依次尝试 Firefox、Chromium、WebKit。若所有 Playwright 浏览器都不可用，会退回到 Pillow 文本图片渲染；这个兜底模式不会真正渲染 LaTeX。
 
 ### MathJax 网络要求
 
@@ -253,10 +253,10 @@ uv run stop
 1. 从 Codeforces 抓取候选题。
 2. 下载原题 HTML。
 3. 用视觉模型识别 CF 的公式图片，转成 LaTeX。
-4. 保留原题里的普通图片，并把图片下载成 base64 嵌进 HTML。
-5. 移除题目标题/header，避免未解出前暴露题号或题名。
-6. 用 Firefox + MathJax 渲染 HTML/Markdown。
-7. 截图生成 PNG，发送到 QQ 群。
+4. 调用大模型生成不包含题名和编号的中文题意摘要。
+5. 清除中文题意、样例和样例解释中的 emoji/keycap 数字。
+6. 只把中文题意及其中保留的 LaTeX 交给 Firefox + MathJax 渲染。
+7. 截图生成 PNG，发送到 QQ 群；英文原题正文不会出现在图片中。
 
 缓存文件在：
 
@@ -270,7 +270,7 @@ uv run stop
 <data_dir>/groups/<group_id>/rendered/
 ```
 
-如果你修改了渲染逻辑，旧缓存里可能没有 `render_html` 字段。机器人会在再次遇到该题时重新抓取题面以补齐渲染缓存。
+原题缓存仍用于生成中文摘要和供 AI 判断，但不会直接作为发题图片内容。
 
 ## 解题交互规则
 
@@ -336,9 +336,9 @@ python -m playwright install firefox
 2. 服务器是否能访问 MathJax CDN。
 3. 是否设置了错误的 `KOUHAI_RENDER_BROWSER`。
 
-### 原题图片没有出现在输出图中
+### 为什么输出图里没有英文原题或原题图片
 
-原题普通图片会在抓题时下载并嵌入 `render_html`。如果下载失败，会显示 `[IMAGE]`。常见原因是服务器不能访问 Codeforces 图片地址。
+这是当前设计：发到群里的图片只包含翻译后的中文题意、中文样例标签和其中保留的 LaTeX 公式，不直接渲染英文原题 HTML，也不嵌入原题图片。
 
 ### 机器人没有反应
 

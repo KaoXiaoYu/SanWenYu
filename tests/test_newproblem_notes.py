@@ -23,7 +23,7 @@ def test_build_notes_message_translates_and_formats():
     asyncio.run(_run())
 
 
-def test_build_notes_message_falls_back_to_normalized_original():
+def test_build_notes_message_does_not_fall_back_to_english_original():
     from kouhai_bot.handlers.cmd import newproblem
 
     async def _run():
@@ -39,9 +39,16 @@ def test_build_notes_message_falls_back_to_normalized_original():
             AsyncMock(return_value=(None, "")),
         ):
             result = await newproblem._build_notes_message(stmt)
-        assert result == "样例解释：\nFirst line\nSecond & line"
+        assert result == ""
 
     asyncio.run(_run())
+
+
+def test_problem_content_removes_emoji_but_keeps_digits_and_latex():
+    from kouhai_bot.handlers.cmd.newproblem import _sanitize_problem_content
+
+    text = "计算 1️⃣ 到 10 的答案 😄，满足 $a_i \\le n$。"
+    assert _sanitize_problem_content(text) == "计算 1 到 10 的答案 ，满足 $a_i \\le n$。"
 
 
 def test_build_notes_message_keeps_model_output_verbatim():
