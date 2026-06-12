@@ -48,7 +48,7 @@ async def handle_problem(group_id: int, user_id: int, sender: dict,
     from ...config import get_config
     from ...napcat.client import send_group_forward_msg
     from ..shared import save_problem_card_ref
-    from .newproblem import _send_problem_forward_card
+    from .newproblem import _PROBLEM_RENDER_VERSION, _send_problem_forward_card
     import json
     import os
 
@@ -73,8 +73,9 @@ async def handle_problem(group_id: int, user_id: int, sender: dict,
             pid = str(daily_msg.get("pid", "") or "")
             if pid != current_pid:
                 raise ValueError(f"stale daily_msg pid={pid}, current={current_pid}")
+            render_version = int(daily_msg.get("render_version", 0) or 0)
             msg_id = daily_msg.get("msg_id")
-            if msg_id:
+            if msg_id and render_version == _PROBLEM_RENDER_VERSION:
                 fwd_nodes = [{"type": "node", "data": {"id": str(msg_id)}}]
                 sample_msg_ids = daily_msg.get("sample_msg_ids", [])
                 if isinstance(sample_msg_ids, list):
@@ -109,6 +110,7 @@ async def handle_problem(group_id: int, user_id: int, sender: dict,
                     if pid:
                         save_problem_card_ref(group_id, fwd_resp, pid, "problem_resend")
                     daily_msg.update(node_payload)
+                    daily_msg["render_version"] = _PROBLEM_RENDER_VERSION
                     daily_msg["rendered_paths"] = node_payload.get("rendered_paths", [])
                     daily_msg["fwd_message_id"] = fwd_resp
                     with open(daily_msg_path, "w") as f:

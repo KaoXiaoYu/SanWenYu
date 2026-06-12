@@ -153,8 +153,10 @@ def _html_document(body: str, *, max_width: int) -> str:
       margin: 0;
       background: #f3f4f1;
       color: #1f2933;
-      font-family: "Microsoft YaHei", "Segoe UI Emoji", "Apple Color Emoji",
-        "Noto Color Emoji", "Noto Sans CJK SC", sans-serif;
+      font-family: "Microsoft YaHei", "Noto Sans CJK SC", "PingFang SC",
+        "Segoe UI", Arial, "Segoe UI Emoji", "Apple Color Emoji",
+        "Noto Color Emoji", sans-serif;
+      font-variant-emoji: text;
       font-size: 25px;
       line-height: 1.55;
     }}

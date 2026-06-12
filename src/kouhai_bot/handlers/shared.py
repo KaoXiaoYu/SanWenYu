@@ -748,7 +748,12 @@ async def summarize_problem(stmt_text: str, input_text: str, limits_text: str) -
         "YES/NO 的判定规则；构造题要输出什么的精确定义；交互题里询问/回答的含义；会改变结论的特例或边界。\n"
         "3) 素材中的公式（含 LaTeX）凡参与题意定义、而非仅装饰的，必须在简述中体现：优先用清晰中文把关系说完整；"
         "若仅用中文会产生歧义或无法保留必要的符号结构，允许保留最少必要的 LaTeX 片段（如分式、求和、多重下标），"
-        "禁止大段堆砌 LaTeX、禁止代码围栏或 Markdown 数学块。\n\n"
+        "禁止大段堆砌 LaTeX、禁止代码围栏。\n"
+        "4) 所有需要渲染的 LaTeX 必须使用 MathJax 分隔符：行内公式只能写成 `$...$`，独立公式只能写成 `$$...$$`。"
+        "禁止输出裸露的 LaTeX 命令，禁止使用 `\\(...\\)`、`\\[...\\]`、反引号或代码块包围公式。"
+        "例如应写 `$a_i \\le n$`、`$$\\sum_{i=1}^{n} a_i$$`。\n"
+        "5) 禁止使用任何 emoji、颜文字、图标字符、keycap 数字或圈号数字。数字只能使用普通 ASCII 字符 0-9，"
+        "例如必须写 `1`，不能写 `1️⃣`、`①` 或 `❶`。\n\n"
         "表达与长度：\n"
         "1) 背景故事、角色名、与算法无关的修辞可删；定义、约束、关键公式不可删。\n"
         "2) 默认流畅中文 + 简单符号（如 ≤、≥、×）；非交互且无特殊读入要求时，I/O 格式可点到为止。\n"
@@ -760,7 +765,8 @@ async def summarize_problem(stmt_text: str, input_text: str, limits_text: str) -
         {"role": "system", "content": (
             "你是算法竞赛选手，在 QQ 群用中文介绍每日一题。"
             "输出连贯、可读、信息完整的中文简述；默认少用 LaTeX 以降低阅读成本，但题意所依赖的关键公式与定义必须交代清楚，"
-            "必要时可保留少量 LaTeX。不要使用 Markdown（标题井号、列表语法、代码围栏、粗体斜体）。"
+            "必要时可保留少量 LaTeX。LaTeX 只能使用 `$...$` 或 `$$...$$` 分隔，必须能被 MathJax 直接渲染。"
+            "不要使用 Markdown 标题、列表、代码围栏、粗体斜体。禁止 emoji、keycap 数字和圈号数字，数字只用 0-9。"
         )},
         {"role": "user", "content": prompt},
     ], task="summary", timeout=cfg.summary_timeout_sec)

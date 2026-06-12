@@ -22,7 +22,6 @@ from ..shared import (
     save_problem_card_ref,
     save_problem_summary,
     save_scoreboard,
-    snake_replace,
     summarize_problem,
     translate_sample_notes,
 )
@@ -46,6 +45,7 @@ from .submit import run_group_state_update
 
 logger = logging.getLogger("kouhai-bot.cmd.newproblem")
 
+_PROBLEM_RENDER_VERSION = 2
 _PROBLEM_EMOJI_RE = re.compile(
     "["
     "\U0001F000-\U0001FAFF"
@@ -55,12 +55,33 @@ _PROBLEM_EMOJI_RE = re.compile(
     re.UNICODE,
 )
 _KEYCAP_RE = re.compile(r"([0-9#*])[\uFE0E\uFE0F]?\u20E3")
+_INLINE_MATH_RE = re.compile(r"\\\((.+?)\\\)", re.DOTALL)
+_DISPLAY_MATH_RE = re.compile(r"\\\[(.+?)\\\]", re.DOTALL)
+
+_NUMBER_TRANSLATION = {
+    **{ord(chr(0xFF10 + i)): str(i) for i in range(10)},
+    **{ord(chr(0x2460 + i)): str(i + 1) for i in range(20)},
+    **{ord(chr(0x2474 + i)): str(i + 1) for i in range(20)},
+    **{ord(chr(0x2488 + i)): str(i + 1) for i in range(20)},
+    **{ord(chr(0x2776 + i)): str(i + 1) for i in range(10)},
+    **{ord(chr(0x2780 + i)): str(i + 1) for i in range(10)},
+    **{ord(chr(0x278A + i)): str(i + 1) for i in range(10)},
+}
 
 
 def _sanitize_problem_content(text: str) -> str:
-    """Remove emoji presentation from statement-related content."""
+    """Normalize MathJax delimiters and remove emoji-style number glyphs."""
     value = _KEYCAP_RE.sub(r"\1", text or "")
-    value = value.replace("\uFE0E", "").replace("\uFE0F", "").replace("\u20E3", "")
+    value = value.translate(_NUMBER_TRANSLATION)
+    value = _DISPLAY_MATH_RE.sub(lambda m: f"$${m.group(1).strip()}$$", value)
+    value = _INLINE_MATH_RE.sub(lambda m: f"${m.group(1).strip()}$", value)
+    value = (
+        value
+        .replace("\uFE0E", "")
+        .replace("\uFE0F", "")
+        .replace("\u20E3", "")
+        .replace("\u200D", "")
+    )
     return _PROBLEM_EMOJI_RE.sub("", value).strip()
 
 # ── Cooldown ────────────────────────────────────────────────────────────
@@ -251,6 +272,7 @@ def _save_daily_msg(
 ) -> None:
     daily_msg = {
         **(node_payload or {}),
+        "render_version": _PROBLEM_RENDER_VERSION,
         "pid": pid,
         "post_msg": post_msg,
         "sample_messages": sample_messages,
@@ -333,6 +355,9 @@ async def _send_problem_forward_card(
     snake_enabled: bool = True,
 ) -> tuple[int | None, dict]:
     cfg = get_config()
+    post_msg = _sanitize_problem_content(post_msg)
+    sample_messages = [_sanitize_problem_content(item) for item in sample_messages]
+    notes_message = _sanitize_problem_content(notes_message)
 
     rendered_paths: list[str] = []
 
@@ -525,7 +550,7 @@ async def _do_daily_post_locked(
         logger.warning(f"[group_{group_id}] Summary error: {e}")
 
     # Step 4: Compose and deliver via merged-forward card
-    greeting = prefix if prefix else "中午好呀☀️ 先前题目已解出，来看看今天的每日一题吧！"
+    greeting = prefix if prefix else "中午好，先前题目已解出，来看看今天的每日一题吧！"
     post_msg = f"{greeting}\n\n{desc}" if desc else greeting
     if model_tag:
         post_msg += model_tag
@@ -533,7 +558,7 @@ async def _do_daily_post_locked(
     if reveal_text and "还没有发过题哦" not in reveal_text:
         post_msg = post_msg + "\n\n" + reveal_text
 
-    post_msg = snake_replace(post_msg)
+    post_msg = _sanitize_problem_content(post_msg)
 
     fwd_resp, node_payload = await _send_problem_forward_card(
         group_id=group_id,
