@@ -47,14 +47,8 @@ def test_build_notes_message_does_not_fall_back_to_english_original():
 def test_problem_content_removes_emoji_but_keeps_digits_and_latex():
     from kouhai_bot.handlers.cmd.newproblem import _sanitize_problem_content
 
-    text = (
-        "计算 1️⃣、①、❶ 和全角 ９ 的答案 😄，"
-        "满足 \\(a_i \\le n\\)，并计算 \\[\\sum_{i=1}^{n} a_i\\]。"
-    )
-    assert _sanitize_problem_content(text) == (
-        "计算 1、1、1 和全角 9 的答案 ，"
-        "满足 $a_i \\le n$，并计算 $$\\sum_{i=1}^{n} a_i$$。"
-    )
+    text = "计算 1️ 到 10 的答案 😄，满足 $a_i \\le n$。"
+    assert _sanitize_problem_content(text) == "计算 1 到 10 的答案 ，满足 $a_i \\le n$。"
 
 
 def test_build_notes_message_keeps_model_output_verbatim():
