@@ -82,7 +82,12 @@ async def handle_problem(group_id: int, user_id: int, sender: dict,
     from ...config import get_config
     from ...napcat.client import send_group_forward_msg
     from ..shared import save_problem_card_ref
-    from .newproblem import _PROBLEM_RENDER_VERSION, _send_problem_forward_card
+    from .newproblem import (
+        _PROBLEM_RENDER_VERSION,
+        _build_statement_image_messages,
+        _load_statement_json,
+        _send_problem_forward_card,
+    )
     import json
     import os
 
@@ -111,6 +116,14 @@ async def handle_problem(group_id: int, user_id: int, sender: dict,
             msg_id = daily_msg.get("msg_id")
             if msg_id and render_version == _PROBLEM_RENDER_VERSION:
                 fwd_nodes = [{"type": "node", "data": {"id": str(msg_id)}}]
+                statement_image_msg_ids = daily_msg.get("statement_image_msg_ids", [])
+                if isinstance(statement_image_msg_ids, list):
+                    for statement_image_msg_id in statement_image_msg_ids:
+                        if statement_image_msg_id:
+                            fwd_nodes.append({
+                                "type": "node",
+                                "data": {"id": str(statement_image_msg_id)},
+                            })
                 sample_msg_ids = daily_msg.get("sample_msg_ids", [])
                 if isinstance(sample_msg_ids, list):
                     for sample_msg_id in sample_msg_ids:
@@ -134,12 +147,14 @@ async def handle_problem(group_id: int, user_id: int, sender: dict,
             notes_message = daily_msg.get("notes_message")
             snake_enabled = bool(daily_msg.get("snake_enabled", True))
             if isinstance(post_msg, str) and isinstance(sample_messages, list):
+                stmt = _load_statement_json(cfg, group_id, current_pid)
                 fwd_resp, node_payload = await _send_problem_forward_card(
                     group_id=group_id,
                     post_msg=post_msg,
                     sample_messages=[str(item) for item in sample_messages],
                     notes_message=str(notes_message) if isinstance(notes_message, str) else "",
                     snake_enabled=snake_enabled,
+                    statement_image_messages=_build_statement_image_messages(stmt),
                 )
                 if fwd_resp:
                     if pid:

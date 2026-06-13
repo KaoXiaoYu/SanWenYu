@@ -198,9 +198,10 @@ def _normalize_samples(samples: list[dict]) -> tuple[list[dict], bool]:
 def fetch_statement(problem: dict) -> object:
     """
     Fetch full problem statement from Codeforces using cf_statement with Qwen-VL.
-    Formula images are converted to LaTeX text via VL; non-formula diagrams are filtered.
+    Formula images are converted to LaTeX text via VL; other statement images are
+    preserved in render_html for delivery with the group problem card.
     Returns dict with keys: name, time_limit, memory_limit, description,
-    input, samples, notes. Or None on failure / diagram problem.
+    input, samples, notes. Or None on failure.
     Caches locally so we only process each problem once.
     """
     contest_id = problem.get("contestId")
@@ -295,6 +296,8 @@ def fetch_statement(problem: dict) -> object:
     result["description"] = desc
     if cf_result.get("render_html"):
         result["render_html"] = cf_result["render_html"]
+    if cf_result.get("statement_images"):
+        result["statement_images"] = cf_result["statement_images"]
     result["has_non_formula_images"] = bool(cf_result.get("has_non_formula_images"))
 
     # Extract Input spec from raw HTML

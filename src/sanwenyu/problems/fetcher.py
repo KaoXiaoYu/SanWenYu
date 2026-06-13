@@ -13,7 +13,7 @@ VL backends (set via --vl-backend or CF_VL_BACKEND env):
   - none     Dry-run only
 
 Returns:
-  - has_non_formula_images: True if problem contains tex-graphics diagrams → filter out
+  - statement_images: original non-formula images embedded as data URLs
 """
 
 import argparse
@@ -109,20 +109,17 @@ def extract_problem_statement(html: str) -> str | None:
 # ── Find formula / graphics images ──────────────────────────────────────
 
 def find_all_tex_images(ps_html: str) -> tuple[list[dict], list[dict]]:
-    """Find all tex-formula and tex-graphics images.
+    """Find formula images and other images in the problem statement.
     Returns (formulas, graphics) — each a list of {tag, src, class, start, end}.
     tex-formula = math formula images (should convert to LaTeX)
-    tex-graphics = diagrams/charts/drawings (should filter out the problem)
+    Other images are diagrams/charts/drawings preserved for the problem card.
     """
     formulas = []
     graphics = []
-    for m in re.finditer(
-        r'<img[^>]*class="[^"]*\b(tex-formula|tex-graphics)\b[^"]*"[^>]*>',
-        ps_html,
-    ):
+    for m in re.finditer(r"<img\b[^>]*>", ps_html, re.I):
         tag = m.group(0)
-        src_m = re.search(r'src="([^"]+)"', tag)
-        cls_m = re.search(r'class="([^"]+)"', tag)
+        src_m = re.search(r"""src\s*=\s*["']([^"']+)["']""", tag, re.I)
+        cls_m = re.search(r"""class\s*=\s*["']([^"']+)["']""", tag, re.I)
         cls = cls_m.group(1) if cls_m else ""
         entry = {
             "tag": tag,
@@ -131,10 +128,10 @@ def find_all_tex_images(ps_html: str) -> tuple[list[dict], list[dict]]:
             "start": m.start(),
             "end": m.end(),
         }
-        if "tex-graphics" in cls:
-            graphics.append(entry)
-        else:
+        if "tex-formula" in cls:
             formulas.append(entry)
+        else:
+            graphics.append(entry)
     return formulas, graphics
 
 
@@ -420,7 +417,7 @@ def process_problem(
       - pid, url, text, text_length
       - formulas_found, formulas_processed
       - formula_details: list of {src, latex}
-      - has_non_formula_images: True if tex-graphics (diagrams) found → filter out
+      - statement_images: original non-formula images embedded as data URLs
       - formulas_failed: number of formulas that couldn't be converted after retries
     """
     html, pid = fetch_problem_html(contest_id, index)
@@ -430,12 +427,19 @@ def process_problem(
 
     formulas, graphics = find_all_tex_images(ps_html)
     has_non_formula_images = len(graphics) > 0
+    statement_images = []
+    for graphic in graphics:
+        try:
+            image_bytes = download_image(normalize_image_url(graphic.get("src", "")))
+            statement_images.append(image_bytes_to_data_url(image_bytes))
+        except Exception as e:
+            print(f"  [{pid}] statement image download failed: {e}", file=sys.stderr)
 
     print(f"[{pid}] Found {len(formulas)} formula(s), {len(graphics)} graphic(s)",
           file=sys.stderr)
 
     if has_non_formula_images:
-        print(f"  [{pid}] ⚠ contains tex-graphics (diagrams) — will be filtered",
+        print(f"  [{pid}] contains statement image(s) — preserving for delivery",
               file=sys.stderr)
 
     # Process formula images
@@ -449,7 +453,7 @@ def process_problem(
                   file=sys.stderr)
             try:
                 # Download + preprocess
-                img_bytes = download_image(fm["src"])
+                img_bytes = download_image(normalize_image_url(fm["src"]))
                 img_bytes = preprocess_formula_png(img_bytes)
                 b64_url = image_to_base64_url(img_bytes)
 
@@ -514,6 +518,7 @@ def process_problem(
         "formulas_processed": len(formulas) - formulas_failed,
         "formulas_failed": formulas_failed,
         "formula_details": formula_results,
+        "statement_images": statement_images,
         "render_html": render_html,
         "text": plain_text,
         "text_length": len(plain_text),
@@ -585,7 +590,7 @@ def main():
         print(f"URL: {result['url']}")
         print(f"Formulas: {result['formulas_found']} found, {result['formulas_processed']} processed")
         if result["has_non_formula_images"]:
-            print("⚠ Contains non-formula images (diagrams) — recommend filtering")
+            print("Contains non-formula images (diagrams) — preserved for delivery")
         if result["formulas_failed"]:
             print(f"⚠ {result['formulas_failed']} formula(s) failed")
         for fr in result.get("formula_details", []):

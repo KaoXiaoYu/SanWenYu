@@ -6,6 +6,7 @@ Also imported by scheduler for the daily 12:00 post (via do_daily_post).
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import os
@@ -46,7 +47,7 @@ from .submit import run_group_state_update
 
 logger = logging.getLogger("SanWenYu.cmd.newproblem")
 
-_PROBLEM_RENDER_VERSION = 2
+_PROBLEM_RENDER_VERSION = 3
 _PROBLEM_EMOJI_RE = re.compile(
     "["
     "\U0001F000-\U0001FAFF"
@@ -58,6 +59,10 @@ _PROBLEM_EMOJI_RE = re.compile(
 _KEYCAP_RE = re.compile(r"([0-9#*])[\uFE0E\uFE0F]?\u20E3")
 _INLINE_MATH_RE = re.compile(r"\\\((.+?)\\\)", re.DOTALL)
 _DISPLAY_MATH_RE = re.compile(r"\\\[(.+?)\\\]", re.DOTALL)
+_STATEMENT_DATA_IMAGE_RE = re.compile(
+    r"""<img\b[^>]*\bsrc\s*=\s*["']data:image/[^;,]+;base64,([^"']+)["'][^>]*>""",
+    re.I,
+)
 
 _NUMBER_TRANSLATION = {
     **{ord(chr(0xFF10 + i)): str(i) for i in range(10)},
@@ -342,6 +347,43 @@ def _build_sample_messages(stmt: dict) -> list[str]:
     return lines
 
 
+def _build_statement_image_messages(stmt: dict) -> list[list[dict]]:
+    """Extract embedded original statement images as QQ image messages."""
+    messages: list[list[dict]] = []
+    seen: set[str] = set()
+    data_urls = stmt.get("statement_images")
+    candidates: list[str] = []
+    if isinstance(data_urls, list):
+        candidates.extend(item for item in data_urls if isinstance(item, str))
+    render_html = stmt.get("render_html")
+    if isinstance(render_html, str):
+        candidates.extend(
+            f"data:image/png;base64,{match.group(1)}"
+            for match in _STATEMENT_DATA_IMAGE_RE.finditer(render_html)
+        )
+    for data_url in candidates:
+        match = re.match(
+            r"^data:image/[^;,]+;base64,(.+)$",
+            data_url.strip(),
+            re.I | re.DOTALL,
+        )
+        if not match:
+            continue
+        payload = re.sub(r"\s+", "", match.group(1))
+        if not payload or payload in seen:
+            continue
+        try:
+            base64.b64decode(payload, validate=True)
+        except (ValueError, base64.binascii.Error):
+            continue
+        seen.add(payload)
+        messages.append([{
+            "type": "image",
+            "data": {"file": f"base64://{payload}"},
+        }])
+    return messages
+
+
 async def _build_notes_message(stmt: dict) -> str:
     raw_notes = stmt.get("notes")
     normalized_notes = _normalize_sample_block(raw_notes)
@@ -364,6 +406,7 @@ async def _send_problem_forward_card(
     sample_messages: list[str],
     notes_message: str = "",
     snake_enabled: bool = True,
+    statement_image_messages: list[list[dict]] | None = None,
 ) -> tuple[int | None, dict]:
     cfg = get_config()
     post_msg = _sanitize_problem_content(post_msg)
@@ -371,6 +414,7 @@ async def _send_problem_forward_card(
     notes_message = _sanitize_problem_content(notes_message)
 
     rendered_paths: list[str] = []
+    statement_image_messages = statement_image_messages or []
 
     async def _send_text_node(text: str, slug: str) -> int | None:
         try:
@@ -386,6 +430,21 @@ async def _send_problem_forward_card(
     self_resp = await _send_text_node(post_msg, "problem")
     if not self_resp:
         return None, {}
+
+    statement_image_msg_ids: list[int] = []
+    for i, image_message in enumerate(statement_image_messages, 1):
+        try:
+            image_resp = await send_private_msg(cfg.bot_qq, image_message)
+        except Exception as e:
+            logger.warning(
+                "[group_%s] Statement image %s self-send failed: %s",
+                group_id,
+                i,
+                e,
+            )
+            continue
+        if image_resp:
+            statement_image_msg_ids.append(image_resp)
 
     snake_msg_id = None
     if snake_enabled:
@@ -421,6 +480,8 @@ async def _send_problem_forward_card(
 
     await asyncio.sleep(0.5)
     fwd_nodes = [{"type": "node", "data": {"id": str(self_resp)}}]
+    for statement_image_msg_id in statement_image_msg_ids:
+        fwd_nodes.append({"type": "node", "data": {"id": str(statement_image_msg_id)}})
     for sample_msg_id in sample_msg_ids:
         fwd_nodes.append({"type": "node", "data": {"id": str(sample_msg_id)}})
     if note_msg_id:
@@ -430,6 +491,7 @@ async def _send_problem_forward_card(
     fwd_resp = await send_group_forward_msg(group_id, fwd_nodes)
     payload = {
         "msg_id": self_resp,
+        "statement_image_msg_ids": statement_image_msg_ids,
         "sample_msg_ids": sample_msg_ids,
         "note_msg_id": note_msg_id,
         "snake_msg_id": snake_msg_id,
@@ -529,6 +591,7 @@ async def _do_daily_post_locked(
     pid = str(picked_state.get("today", "") or "")
     sample_messages: list[str] = []
     notes_message = ""
+    statement_image_messages: list[list[dict]] = []
     try:
         if pid:
             schedule_prefetch_editorial(pid)
@@ -547,6 +610,7 @@ async def _do_daily_post_locked(
             limits_text = f"Time: {tl}, Memory: {ml}"
             sample_messages = _build_sample_messages(stmt)
             notes_message = await _build_notes_message(stmt)
+            statement_image_messages = _build_statement_image_messages(stmt)
 
         summary, model_tag = await summarize_problem(stmt_text, input_text, limits_text)
         if not summary:
@@ -577,6 +641,7 @@ async def _do_daily_post_locked(
         sample_messages=sample_messages,
         notes_message=notes_message,
         snake_enabled=True,
+        statement_image_messages=statement_image_messages,
     )
     if not fwd_resp:
         logger.error(f"[group_{group_id}] Problem forward-card send failed, falling back to direct")
@@ -587,6 +652,14 @@ async def _do_daily_post_locked(
                 ok = await send_group_msg(group_id, image_message_from_path(image_path))
             except Exception as e:
                 logger.warning(f"[group_{group_id}] Direct rendered image send failed: {e}")
+            if not ok:
+                break
+            sent_any_image = True
+        for statement_image_message in statement_image_messages:
+            try:
+                ok = await send_group_msg(group_id, statement_image_message)
+            except Exception as e:
+                logger.warning(f"[group_{group_id}] Direct statement image send failed: {e}")
             if not ok:
                 break
             sent_any_image = True
@@ -619,7 +692,7 @@ async def _do_daily_post_locked(
     append_group_ctx(group_id, {"role": "assistant", "content": post_msg})
     logger.info(
         f"[group_{group_id}] Daily post forwarded ✓ "
-        f"({1 + len(sample_messages) + (1 if node_payload.get('note_msg_id') else 0) + (1 if node_payload.get('snake_msg_id') else 0)} msgs)"
+        f"({1 + len(node_payload.get('statement_image_msg_ids', [])) + len(sample_messages) + (1 if node_payload.get('note_msg_id') else 0) + (1 if node_payload.get('snake_msg_id') else 0)} msgs)"
     )
     await _commit_problem_state(group_id, picked_state)
     if pid:

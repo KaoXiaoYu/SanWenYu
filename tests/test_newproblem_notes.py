@@ -1,6 +1,8 @@
 import asyncio
+import base64
 import os
 import sys
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -83,5 +85,90 @@ def test_build_notes_message_returns_empty_on_translate_exception():
         ):
             result = await newproblem._build_notes_message(stmt)
         assert result == ""
+
+    asyncio.run(_run())
+
+
+def test_build_statement_image_messages_extracts_and_deduplicates_images():
+    from sanwenyu.handlers.cmd.newproblem import _build_statement_image_messages
+
+    payload = base64.b64encode(b"original-image").decode()
+    stmt = {
+        "render_html": (
+            f'<p>before</p><img class="tex-graphics" '
+            f'src="data:image/png;base64,{payload}">'
+            f'<img src="data:image/png;base64,{payload}">'
+        )
+    }
+
+    assert _build_statement_image_messages(stmt) == [[{
+        "type": "image",
+        "data": {"file": f"base64://{payload}"},
+    }]]
+
+
+def test_build_statement_image_messages_ignores_invalid_data():
+    from sanwenyu.handlers.cmd.newproblem import _build_statement_image_messages
+
+    stmt = {"render_html": '<img src="data:image/png;base64,not-valid!!!">'}
+    assert _build_statement_image_messages(stmt) == []
+
+
+def test_send_problem_forward_card_includes_statement_image_nodes():
+    from sanwenyu.handlers.cmd import newproblem
+
+    async def _run():
+        forwarded = []
+        send_private = AsyncMock(side_effect=[101, 102, 103])
+
+        async def _send_forward(group_id, nodes):
+            forwarded.append((group_id, nodes))
+            return 201
+
+        with patch.object(
+            newproblem,
+            "get_config",
+            return_value=SimpleNamespace(bot_qq=999),
+        ), patch.object(
+            newproblem,
+            "render_text_to_png",
+            AsyncMock(side_effect=["problem.png", "sample.png"]),
+        ), patch.object(
+            newproblem,
+            "image_message_from_path",
+            side_effect=lambda path: [{"type": "image", "data": {"file": path}}],
+        ), patch.object(
+            newproblem,
+            "send_private_msg",
+            send_private,
+        ), patch.object(
+            newproblem,
+            "send_group_forward_msg",
+            _send_forward,
+        ), patch.object(
+            newproblem.asyncio,
+            "sleep",
+            AsyncMock(),
+        ):
+            result, payload = await newproblem._send_problem_forward_card(
+                group_id=123,
+                post_msg="problem",
+                sample_messages=["sample"],
+                snake_enabled=False,
+                statement_image_messages=[[
+                    {"type": "image", "data": {"file": "base64://original"}},
+                ]],
+            )
+
+        assert result == 201
+        assert payload["statement_image_msg_ids"] == [102]
+        assert forwarded == [(
+            123,
+            [
+                {"type": "node", "data": {"id": "101"}},
+                {"type": "node", "data": {"id": "102"}},
+                {"type": "node", "data": {"id": "103"}},
+            ],
+        )]
 
     asyncio.run(_run())

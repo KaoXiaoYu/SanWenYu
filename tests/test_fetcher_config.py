@@ -4,6 +4,16 @@ from sanwenyu import config
 from sanwenyu.problems import fetcher
 
 
+def test_find_all_tex_images_preserves_generic_statement_images():
+    formulas, graphics = fetcher.find_all_tex_images(
+        '<p>x</p><img class="tex-formula" src="/formula.png">'
+        '<img src="/diagram.png" alt="diagram">'
+    )
+
+    assert [item["src"] for item in formulas] == ["/formula.png"]
+    assert [item["src"] for item in graphics] == ["/diagram.png"]
+
+
 def test_qwen_config_uses_yaml_config_when_env_missing(monkeypatch):
     monkeypatch.setattr(fetcher, "QWEN_API_KEY", "")
     monkeypatch.setattr(fetcher, "QWEN_BASE_URL", "https://env.example/v1")

@@ -23,7 +23,7 @@ NapCat (QQ) ──WS──> worker.py
 - **Scheduler current-group config**: `~/.SanWenYu/scheduler_config.json` stores job list + time overrides for `CURRENT_GROUP`. Jobs are defined in `scheduler/jobs.py`.
 - **Command event log**: `eventlog.py` writes append-only JSONL command events by real local date. `achievements.py` reads those events for the 04:00-to-04:00 daily report. `eventlog_backfill.py` and `tools/backfill_command_events.py` can reconstruct recent saved submit/clarify/review events from `scoreboard.json`.
 - **Formula VL**: `problems/fetcher.py` handles CF formula images → Qwen-VL → inline LaTeX. Has white-bg preprocessing, hallucination detection, retry.
-- **Stale cache detection**: `picker.py:fetch_statement()` detects caches created before VL pipeline via `_vl_processed` flag. Stale caches with images are re-fetched with Qwen-VL. Problems with non-formula images (tex-graphics / diagrams) are skipped.
+- **Stale cache detection**: `picker.py:fetch_statement()` detects caches created before VL pipeline via `_vl_processed` flag. Stale caches with images are re-fetched with Qwen-VL. Non-formula statement images are cached and sent as separate image nodes in the group problem card.
 - **No hermes cron involvement**: The bot runs its own scheduler loop (`scheduler/engine.py`), not hermes cron jobs.
 - **Single worker runtime**: `worker.py` keeps the NapCat reverse-WS connection, dispatches commands, and owns the scheduler in one process. There is no SQLite event queue, ingress supervisor, worker hot-swap, or auto-update loop.
 - **Friend request auto-approval**: Normal OneBot `post_type="request"` / `request_type="friend"` events are parsed by `napcat/client.py`, routed by `handlers.process_event()`, and approved via `set_friend_add_request`. QQ/NapCat "doubtful" friend requests are not reliably pushed as request events, so `worker.py` also runs `friend_requests.doubt_friend_request_loop()`, which polls `get_doubt_friends_add_request` every 60 seconds and approves with `set_doubt_friends_add_request`. Both paths approve only after the requester is confirmed to be a member of `CURRENT_GROUP`; lookup failure, malformed events, non-friend requests, and non-members are ignored without approving. Requests that were already consumed by another QQ client may not appear in the doubtful-request poll.
@@ -678,7 +678,8 @@ lock and wraps the same locked implementation:
    problems and caches statements but does **not** write `state.json`
 3. Generate Chinese summary via `summarize_problem()` → per-provider `summary_model`,
    timeout from `llm.summary_timeout_sec`
-4. Self-send summary text; self-send each sample as an independent node; if statement has
+4. Self-send summary text; append each original non-formula statement image as an
+   independent image node; self-send each sample as an independent node; if statement has
    `notes`, translate it to Chinese and append a dedicated `样例解释` node (with LaTeX/Markdown
    artifacts normalized to readable symbols such as `→`, `≤`, `<`, `>`); then append snake
    image and forward all nodes as one merged card to group
