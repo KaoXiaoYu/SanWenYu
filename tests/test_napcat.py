@@ -3,7 +3,7 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.napcat.client import parse_event, build_plain_message, build_text
+from sanwenyu.napcat.client import parse_event, build_plain_message, build_text
 
 
 def test_parse_group_message():

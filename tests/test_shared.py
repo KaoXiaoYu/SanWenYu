@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.config import BotConfig
-from kouhai_bot.llm_config import LlmProviderConfig
-from kouhai_bot.handlers.shared import call_chat_completion, summarize_problem
-from kouhai_bot.llm import _ChatCompletionAttempt
+from sanwenyu.config import BotConfig
+from sanwenyu.llm_config import LlmProviderConfig
+from sanwenyu.handlers.shared import call_chat_completion, summarize_problem
+from sanwenyu.llm import _ChatCompletionAttempt
 
 
 class _DummySession:
@@ -50,10 +50,10 @@ def test_call_chat_completion_retries_transient_failures_then_succeeds():
         calls.append(kwargs["payload"]["model"])
         return responses.pop(0)
 
-    with patch("kouhai_bot.llm.get_config", return_value=cfg), \
-            patch("kouhai_bot.llm.aiohttp.ClientSession", _DummySession), \
-            patch("kouhai_bot.llm._post_chat_completion_once", side_effect=fake_once) as once_mock, \
-            patch("kouhai_bot.llm.asyncio.sleep", sleep_mock):
+    with patch("sanwenyu.llm.get_config", return_value=cfg), \
+            patch("sanwenyu.llm.aiohttp.ClientSession", _DummySession), \
+            patch("sanwenyu.llm._post_chat_completion_once", side_effect=fake_once) as once_mock, \
+            patch("sanwenyu.llm.asyncio.sleep", sleep_mock):
         result = asyncio.run(call_chat_completion(
             [{"role": "user", "content": "Reply with exactly OK."}],
             task="judge",
@@ -72,10 +72,10 @@ def test_call_chat_completion_stops_on_non_retryable_failure():
     async def fake_once(session, **kwargs):
         return _ChatCompletionAttempt(text=None, retryable=False, retry_after_sec=None, failure_kind="error")
 
-    with patch("kouhai_bot.llm.get_config", return_value=cfg), \
-            patch("kouhai_bot.llm.aiohttp.ClientSession", _DummySession), \
-            patch("kouhai_bot.llm._post_chat_completion_once", side_effect=fake_once) as once_mock, \
-            patch("kouhai_bot.llm.asyncio.sleep", sleep_mock):
+    with patch("sanwenyu.llm.get_config", return_value=cfg), \
+            patch("sanwenyu.llm.aiohttp.ClientSession", _DummySession), \
+            patch("sanwenyu.llm._post_chat_completion_once", side_effect=fake_once) as once_mock, \
+            patch("sanwenyu.llm.asyncio.sleep", sleep_mock):
         result = asyncio.run(call_chat_completion(
             [{"role": "user", "content": "Reply with exactly OK."}],
             task="judge",
@@ -101,10 +101,10 @@ def test_call_chat_completion_honors_retry_after_with_cap():
     async def fake_once(session, **kwargs):
         return responses.pop(0)
 
-    with patch("kouhai_bot.llm.get_config", return_value=cfg), \
-            patch("kouhai_bot.llm.aiohttp.ClientSession", _DummySession), \
-            patch("kouhai_bot.llm._post_chat_completion_once", side_effect=fake_once), \
-            patch("kouhai_bot.llm.asyncio.sleep", sleep_mock):
+    with patch("sanwenyu.llm.get_config", return_value=cfg), \
+            patch("sanwenyu.llm.aiohttp.ClientSession", _DummySession), \
+            patch("sanwenyu.llm._post_chat_completion_once", side_effect=fake_once), \
+            patch("sanwenyu.llm.asyncio.sleep", sleep_mock):
         result = asyncio.run(call_chat_completion(
             [{"role": "user", "content": "Reply with exactly OK."}],
             task="judge",
@@ -117,7 +117,7 @@ def test_call_chat_completion_honors_retry_after_with_cap():
 def test_summarize_problem_uses_configured_timeout():
     cfg = _openai_cfg(summary_timeout_sec=321)
 
-    from kouhai_bot.llm import ChatCompletionResult
+    from sanwenyu.llm import ChatCompletionResult
 
     async def fake_call_chat(messages, model="", task="", temperature=0.7, timeout=120,
                              response_format=None, thinking=None):
@@ -125,8 +125,8 @@ def test_summarize_problem_uses_configured_timeout():
         assert timeout == 321
         return ChatCompletionResult(text="summary ok", model_tag="🐳")
 
-    with patch("kouhai_bot.handlers.shared.get_config", return_value=cfg), \
-            patch("kouhai_bot.handlers.shared.call_chat_completion_result", side_effect=fake_call_chat):
+    with patch("sanwenyu.handlers.shared.get_config", return_value=cfg), \
+            patch("sanwenyu.handlers.shared.call_chat_completion_result", side_effect=fake_call_chat):
         summary, tag = asyncio.run(summarize_problem("stmt", "input", "limits"))
         assert summary == "summary ok"
         assert tag == "🐳"

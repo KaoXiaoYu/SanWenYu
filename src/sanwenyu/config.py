@@ -26,13 +26,13 @@ def _try_load_dotenv() -> None:
 
 
 def _find_config_yaml() -> Path:
-    """Find config.yaml: KOUHAI_CONFIG env > repo root."""
-    env_path = os.environ.get("KOUHAI_CONFIG", "").strip()
+    """Find config.yaml: SANWENYU_CONFIG env > repo root."""
+    env_path = os.environ.get("SANWENYU_CONFIG", "").strip()
     if env_path:
         p = Path(env_path)
         if p.exists():
             return p
-        raise RuntimeError(f"KOUHAI_CONFIG is set but file not found: {env_path}")
+        raise RuntimeError(f"SANWENYU_CONFIG is set but file not found: {env_path}")
 
     repo_path = _repo_root() / "config.yaml"
     if repo_path.exists():
@@ -40,7 +40,7 @@ def _find_config_yaml() -> Path:
 
     raise RuntimeError(
         "Cannot find config.yaml. Place it at the repo root, "
-        "or set KOUHAI_CONFIG=/path/to/config.yaml"
+        "or set SANWENYU_CONFIG=/path/to/config.yaml"
     )
 
 
@@ -139,7 +139,7 @@ class BotConfig:
     curfew_duration_hours: int = 0
 
     # --- Paths ---
-    data_dir: str = str(Path.home() / ".kouhai-bot")
+    data_dir: str = str(Path.home() / ".SanWenYu")
     sessions_dir: str = ""
 
     def __post_init__(self) -> None:

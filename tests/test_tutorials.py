@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from unittest.mock import AsyncMock, patch
 
-from kouhai_bot.tutorials import (
+from sanwenyu.tutorials import (
     MIN_EDITORIAL_LEN,
     OfficialEditorial,
     extract_editorial,
@@ -79,10 +79,10 @@ def test_extract_editorial_appends_code_blocks():
 
 def test_get_official_editorial_none_when_missing_file(tmp_path, monkeypatch):
     import json
-    from kouhai_bot.config import BotConfig
+    from sanwenyu.config import BotConfig
 
     cfg = BotConfig(data_dir=str(tmp_path))
-    monkeypatch.setattr("kouhai_bot.tutorials.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.tutorials.get_config", lambda: cfg)
     assert get_official_editorial("999Z") is None
 
     tutorials_dir = tmp_path / "tutorials"
@@ -108,10 +108,10 @@ def test_get_official_editorial_none_when_missing_file(tmp_path, monkeypatch):
 
 
 def test_get_editorial_zh_for_group_uses_translation(tmp_path, monkeypatch):
-    from kouhai_bot.config import BotConfig
+    from sanwenyu.config import BotConfig
 
     cfg = BotConfig(data_dir=str(tmp_path))
-    monkeypatch.setattr("kouhai_bot.tutorials.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.tutorials.get_config", lambda: cfg)
 
     body = _long_text("english-")
     editorial = OfficialEditorial(
@@ -122,7 +122,7 @@ def test_get_editorial_zh_for_group_uses_translation(tmp_path, monkeypatch):
 
     async def _run():
         with patch(
-            "kouhai_bot.tutorials.translate_editorial_to_zh",
+            "sanwenyu.tutorials.translate_editorial_to_zh",
             AsyncMock(return_value=("中文题解译文。" * 20, "")),
         ):
             return await get_editorial_zh_for_group(editorial, "542D")
@@ -134,10 +134,10 @@ def test_get_editorial_zh_for_group_uses_translation(tmp_path, monkeypatch):
 
 
 def test_prefetch_editorial_zh_marks_missing(tmp_path, monkeypatch):
-    from kouhai_bot.config import BotConfig
+    from sanwenyu.config import BotConfig
 
     cfg = BotConfig(data_dir=str(tmp_path))
-    monkeypatch.setattr("kouhai_bot.tutorials.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.tutorials.get_config", lambda: cfg)
 
     async def _run():
         await prefetch_editorial_zh("999Z")
@@ -147,10 +147,10 @@ def test_prefetch_editorial_zh_marks_missing(tmp_path, monkeypatch):
 
 
 def test_prefetch_editorial_zh_caches_translation(tmp_path, monkeypatch):
-    from kouhai_bot.config import BotConfig
+    from sanwenyu.config import BotConfig
 
     cfg = BotConfig(data_dir=str(tmp_path))
-    monkeypatch.setattr("kouhai_bot.tutorials.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.tutorials.get_config", lambda: cfg)
     tutorials_dir = tmp_path / "tutorials"
     tutorials_dir.mkdir()
     body = _long_text("prefetch-")
@@ -165,7 +165,7 @@ def test_prefetch_editorial_zh_caches_translation(tmp_path, monkeypatch):
 
     async def _run():
         with patch(
-            "kouhai_bot.tutorials.translate_editorial_to_zh",
+            "sanwenyu.tutorials.translate_editorial_to_zh",
             AsyncMock(return_value=("预取译文 \\(x \\le n\\)。" * 15, "")),
         ):
             await prefetch_editorial_zh("542D")
@@ -177,12 +177,12 @@ def test_prefetch_editorial_zh_caches_translation(tmp_path, monkeypatch):
 
 
 def test_deliver_uses_prefetch_cache_without_translate(tmp_path, monkeypatch):
-    from kouhai_bot.config import BotConfig
-    from kouhai_bot.editorial_followup import deliver_official_tutorial_forward
+    from sanwenyu.config import BotConfig
+    from sanwenyu.editorial_followup import deliver_official_tutorial_forward
 
     cfg = BotConfig(data_dir=str(tmp_path))
-    monkeypatch.setattr("kouhai_bot.tutorials.get_config", lambda: cfg)
-    monkeypatch.setattr("kouhai_bot.editorial_followup.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.tutorials.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.editorial_followup.get_config", lambda: cfg)
     cache_dir = tmp_path / "tutorial_translations"
     cache_dir.mkdir()
     (cache_dir / "542D.txt").write_text("预取译文。" * 20, encoding="utf-8")
@@ -191,9 +191,9 @@ def test_deliver_uses_prefetch_cache_without_translate(tmp_path, monkeypatch):
         raise AssertionError("translate should not run when cache is warm")
 
     async def _run():
-        with patch("kouhai_bot.tutorials.translate_editorial_to_zh", _fail_translate), \
-                patch("kouhai_bot.editorial_followup.send_private_msg", AsyncMock(return_value=1)), \
-                patch("kouhai_bot.editorial_followup.send_group_forward_msg", AsyncMock(return_value=99)):
+        with patch("sanwenyu.tutorials.translate_editorial_to_zh", _fail_translate), \
+                patch("sanwenyu.editorial_followup.send_private_msg", AsyncMock(return_value=1)), \
+                patch("sanwenyu.editorial_followup.send_group_forward_msg", AsyncMock(return_value=99)):
             await deliver_official_tutorial_forward(
                 1,
                 "542D",
@@ -204,11 +204,11 @@ def test_deliver_uses_prefetch_cache_without_translate(tmp_path, monkeypatch):
 
 
 def test_run_post_solve_skips_prefetch_wait_when_cache_warm(tmp_path, monkeypatch):
-    from kouhai_bot.config import BotConfig
+    from sanwenyu.config import BotConfig
 
     cfg = BotConfig(data_dir=str(tmp_path))
-    monkeypatch.setattr("kouhai_bot.tutorials.get_config", lambda: cfg)
-    monkeypatch.setattr("kouhai_bot.editorial_followup.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.tutorials.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.editorial_followup.get_config", lambda: cfg)
     cache_dir = tmp_path / "tutorial_translations"
     cache_dir.mkdir()
     (cache_dir / "542D.txt").write_text("预取译文。" * 20, encoding="utf-8")
@@ -217,10 +217,10 @@ def test_run_post_solve_skips_prefetch_wait_when_cache_warm(tmp_path, monkeypatc
         raise AssertionError("should not wait for prefetch when cache is warm")
 
     async def _run():
-        with patch("kouhai_bot.editorial_followup._await_prefetch_if_running", _fail_await), \
-                patch("kouhai_bot.editorial_followup.send_private_msg", AsyncMock(return_value=1)), \
-                patch("kouhai_bot.editorial_followup.send_group_forward_msg", AsyncMock(return_value=99)):
-            from kouhai_bot.editorial_followup import run_post_solve_editorial_followup
+        with patch("sanwenyu.editorial_followup._await_prefetch_if_running", _fail_await), \
+                patch("sanwenyu.editorial_followup.send_private_msg", AsyncMock(return_value=1)), \
+                patch("sanwenyu.editorial_followup.send_group_forward_msg", AsyncMock(return_value=99)):
+            from sanwenyu.editorial_followup import run_post_solve_editorial_followup
             await run_post_solve_editorial_followup(999, "542D")
 
     asyncio.run(_run())

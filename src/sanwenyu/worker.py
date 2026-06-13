@@ -13,7 +13,7 @@ from .napcat.client import NapCatServer
 from .runtime import bootstrap_runtime, setup_logging
 from .scheduler.engine import scheduler_loop
 
-logger = logging.getLogger("kouhai-bot.worker")
+logger = logging.getLogger("SanWenYu.worker")
 
 
 class WorkerRuntime:

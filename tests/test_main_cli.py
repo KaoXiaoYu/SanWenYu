@@ -1,4 +1,4 @@
-"""Tests for CLI status output in kouhai_bot.main."""
+"""Tests for CLI status output in sanwenyu.main."""
 
 import io
 import os
@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.main import _print_start_status
+from sanwenyu.main import _print_start_status
 
 
 def test_print_start_status_for_start_omits_stopped_existing():

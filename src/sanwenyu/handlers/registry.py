@@ -54,7 +54,7 @@ def all_commands() -> list[CommandDef]:
     return result
 
 
-def discover_commands(package_path: str = "kouhai_bot.handlers.cmd") -> None:
+def discover_commands(package_path: str = "sanwenyu.handlers.cmd") -> None:
     """Auto-discover and register all command modules."""
     package = importlib.import_module(package_path)
     pkg_dir = os.path.dirname(package.__file__) if package.__file__ else ""

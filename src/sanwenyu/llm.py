@@ -10,7 +10,7 @@ import aiohttp
 
 from .config import get_config
 
-logger = logging.getLogger("kouhai-bot.llm")
+logger = logging.getLogger("SanWenYu.llm")
 
 
 @dataclass(frozen=True)

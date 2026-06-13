@@ -3,7 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.problems.picker import _normalize_sample_block
+from sanwenyu.problems.picker import _normalize_sample_block
 
 
 def test_normalize_sample_block_div_lines():

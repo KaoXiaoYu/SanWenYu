@@ -25,7 +25,7 @@ import cloudscraper
 
 # ── Config ──────────────────────────────────────────────────────────────
 
-STATE_DIR = os.path.expanduser("~/.kouhai-bot")
+STATE_DIR = os.path.expanduser("~/.SanWenYu")
 CACHE_DIR = os.path.join(STATE_DIR, "statements")
 GROUPS_DIR = os.path.join(STATE_DIR, "groups")
 os.makedirs(STATE_DIR, exist_ok=True)

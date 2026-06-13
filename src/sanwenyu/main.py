@@ -1,4 +1,4 @@
-"""Kouhai Bot entry point and local process helpers."""
+"""SanWenYu entry point and local process helpers."""
 
 from __future__ import annotations
 
@@ -126,7 +126,7 @@ def _spawn_detached_bot(port: int, group_id: int, data_dir: str) -> tuple[int, P
     log_path = _bot_log_path(group_id, data_dir)
     with open(log_path, "ab") as log_file:
         proc = subprocess.Popen(
-            ["nohup", sys.executable, "-m", "kouhai_bot.worker"],
+            ["nohup", sys.executable, "-m", "sanwenyu.worker"],
             cwd=str(_repo_root()),
             stdin=subprocess.DEVNULL,
             stdout=log_file,

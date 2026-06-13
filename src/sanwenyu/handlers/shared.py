@@ -18,7 +18,7 @@ from pathlib import Path
 from ..config import get_config
 from ..llm import ChatCompletionResult, chat_completion
 
-logger = logging.getLogger("kouhai-bot.shared")
+logger = logging.getLogger("SanWenYu.shared")
 
 # ── LLM API ─────────────────────────────────────────────────────────────
 

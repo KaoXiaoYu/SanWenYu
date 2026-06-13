@@ -1,4 +1,4 @@
-"""/tourial - send one feasible solution after the current problem is solved."""
+"""/tutorial - send one feasible solution after the current problem is solved."""
 
 from __future__ import annotations
 
@@ -95,8 +95,8 @@ async def handle(group_id: int, user_id: int, sender: dict,
 
 def register() -> None:
     registry.register(CommandDef(
-        name="tourial",
-        aliases=["tutorial"],
+        name="tutorial",
+        aliases=["tourial"],
         description="当前题解出后发送一种可行答案",
         usage="",
         handler=handle,

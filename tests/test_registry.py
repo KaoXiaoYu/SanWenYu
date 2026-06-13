@@ -4,7 +4,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.handlers.registry import (
+from sanwenyu.handlers.registry import (
     discover_commands, all_commands, get, CommandDef
 )
 
@@ -14,11 +14,22 @@ def test_discover_commands():
     discover_commands()
     cmds = all_commands()
     names = {c.name for c in cmds}
-    expected = {"help", "newproblem", "submit", "problem",
-                "tag", "clarify", "scoreboard"}
-    missing = expected - names
-    assert not missing, f"Missing commands: {missing}"
-    assert len(cmds) >= 7
+    expected = {
+        "clarify",
+        "clear",
+        "guess",
+        "help",
+        "newproblem",
+        "problem",
+        "review",
+        "scoreboard",
+        "status",
+        "submit",
+        "tag",
+        "tutorial",
+    }
+    assert names == expected
+    assert all(cmd.handler is not None for cmd in cmds)
 
 
 def test_help_is_registered():
@@ -49,6 +60,7 @@ def test_alias_lookup():
         "rv": "review",
         "pb": "problem",
         "np": "newproblem",
+        "tourial": "tutorial",
     }
     for alias, canonical in expected.items():
         cmd = get(alias)

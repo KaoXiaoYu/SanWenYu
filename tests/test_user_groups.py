@@ -6,9 +6,9 @@ import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.config import BotConfig, UserGroupConfig
-from kouhai_bot.handlers.shared import get_problem_posted_at, mark_problem_posted
-from kouhai_bot.user_groups import (
+from sanwenyu.config import BotConfig, UserGroupConfig
+from sanwenyu.handlers.shared import get_problem_posted_at, mark_problem_posted
+from sanwenyu.user_groups import (
     DEFAULT_GROUP,
     configured_user_groups,
     effective_submit_delay_sec_for_scoreboard,
@@ -37,11 +37,11 @@ def _make_yaml(**overrides) -> str:
 
 
 def _from_yaml(yaml_str: str, monkeypatch, tmp_path) -> BotConfig:
-    from kouhai_bot import config
+    from sanwenyu import config
     monkeypatch.setattr(config, "_try_load_dotenv", lambda: None)
     config_path = tmp_path / "config.yaml"
     config_path.write_text(yaml_str, encoding="utf-8")
-    monkeypatch.setenv("KOUHAI_CONFIG", str(config_path))
+    monkeypatch.setenv("SANWENYU_CONFIG", str(config_path))
     return BotConfig.from_yaml()
 
 
@@ -105,8 +105,8 @@ def test_user_group_submit_window(tmp_path, monkeypatch):
             )
         ],
     )
-    monkeypatch.setattr("kouhai_bot.user_groups.get_config", lambda: cfg)
-    monkeypatch.setattr("kouhai_bot.handlers.shared.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.user_groups.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.handlers.shared.get_config", lambda: cfg)
 
     assert configured_user_groups()[0].display_name == "打星"
     assert get_user_group(42).name == "starred"
@@ -130,7 +130,7 @@ def test_get_problem_posted_at_falls_back_to_daily_msg_mtime(tmp_path, monkeypat
     os.utime(daily_path, (5000, 5000))
 
     cfg = BotConfig(current_group=group_id, data_dir=str(tmp_path))
-    monkeypatch.setattr("kouhai_bot.handlers.shared.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.handlers.shared.get_config", lambda: cfg)
 
     assert get_problem_posted_at(group_id) == 5000
 
@@ -143,7 +143,7 @@ def test_mark_problem_posted_updates_state(tmp_path, monkeypatch):
     state_path.write_text('{"today": "1A"}', encoding="utf-8")
 
     cfg = BotConfig(current_group=group_id, data_dir=str(tmp_path))
-    monkeypatch.setattr("kouhai_bot.handlers.shared.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.handlers.shared.get_config", lambda: cfg)
 
     mark_problem_posted(group_id, posted_at=4242)
 
@@ -161,7 +161,7 @@ def test_dynamic_submit_wait_uses_config_floor(monkeypatch):
             )
         ],
     )
-    monkeypatch.setattr("kouhai_bot.user_groups.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.user_groups.get_config", lambda: cfg)
 
     assert effective_submit_delay_sec_for_scoreboard(42, {}) == 300
     assert effective_submit_delay_sec_for_scoreboard(7, {}) == 0
@@ -189,7 +189,7 @@ def test_dynamic_submit_wait_disabled_when_floor_is_zero(monkeypatch):
             )
         ],
     )
-    monkeypatch.setattr("kouhai_bot.user_groups.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.user_groups.get_config", lambda: cfg)
 
     assert effective_submit_delay_sec_for_scoreboard(42, {
         "user_group_waits": {
@@ -215,7 +215,7 @@ def test_settle_dynamic_submit_wait_for_problem(monkeypatch):
             )
         ],
     )
-    monkeypatch.setattr("kouhai_bot.user_groups.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.user_groups.get_config", lambda: cfg)
     sb = {
         "solves": [
             {"user_id": 42, "nickname": "A", "problem": "1A", "order": 1},
@@ -244,7 +244,7 @@ def test_settle_dynamic_submit_wait_halves_existing_wait(monkeypatch):
             )
         ],
     )
-    monkeypatch.setattr("kouhai_bot.user_groups.get_config", lambda: cfg)
+    monkeypatch.setattr("sanwenyu.user_groups.get_config", lambda: cfg)
     sb = {
         "solves": [
             {"user_id": 7, "nickname": "Default", "problem": "1A", "order": 1},

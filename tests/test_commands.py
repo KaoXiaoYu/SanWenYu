@@ -10,8 +10,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.config import UserGroupConfig
-from kouhai_bot.llm import ChatCompletionResult
+from sanwenyu.config import UserGroupConfig
+from sanwenyu.llm import ChatCompletionResult
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -376,29 +376,34 @@ class _LazyConfig:
 def _all_patches():
     """Return a context manager applying all patches."""
     stack = ExitStack()
-    stack.enter_context(patch("kouhai_bot.config._config", _LazyConfig()))
-    stack.enter_context(patch("kouhai_bot.napcat.client.send_group_msg", _mock_send_group))
-    stack.enter_context(patch("kouhai_bot.napcat.client.react_emoji", _mock_react))
-    stack.enter_context(patch("kouhai_bot.napcat.client.send_private_msg", _mock_send_private))
-    stack.enter_context(patch("kouhai_bot.napcat.client.send_group_forward_msg", _mock_send_group_forward))
-    stack.enter_context(patch("kouhai_bot.napcat.client._http_post", _mock_http_post))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.send_group_msg", _mock_send_group))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.react_emoji", _mock_react))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.send_private_msg", _mock_send_private))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.send_group_forward_msg", _mock_send_group_forward))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.clarify.send_group_msg", _mock_send_group))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.review.send_group_msg", _mock_send_group))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.clear.react_emoji", _mock_react))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.newproblem.send_group_msg", _mock_send_group))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.newproblem.send_private_msg", _mock_send_private))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.newproblem.react_emoji", _mock_react))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.stubs.send_group_msg", _mock_send_group))
-    stack.enter_context(patch("kouhai_bot.editorial_followup.send_private_msg", _mock_send_private))
-    stack.enter_context(patch("kouhai_bot.editorial_followup.send_group_forward_msg", _mock_send_group_forward))
-    stack.enter_context(patch("kouhai_bot.handlers.shared.call_chat_completion_result", _mock_chat_completion_result))
-    stack.enter_context(patch("kouhai_bot.handlers.shared.judge_submission_result", _mock_judge_result))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.call_chat_completion_result", _mock_chat_completion_result))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _mock_judge_result))
+    stack.enter_context(patch("sanwenyu.config._config", _LazyConfig()))
+    stack.enter_context(patch("sanwenyu.napcat.client.send_group_msg", _mock_send_group))
+    stack.enter_context(patch("sanwenyu.napcat.client.react_emoji", _mock_react))
+    stack.enter_context(patch("sanwenyu.napcat.client.send_private_msg", _mock_send_private))
+    stack.enter_context(patch("sanwenyu.napcat.client.send_group_forward_msg", _mock_send_group_forward))
+    stack.enter_context(patch("sanwenyu.napcat.client._http_post", _mock_http_post))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.send_group_msg", _mock_send_group))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.react_emoji", _mock_react))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.send_private_msg", _mock_send_private))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.send_group_forward_msg", _mock_send_group_forward))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.clarify.send_group_msg", _mock_send_group))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.guess.send_group_msg", _mock_send_group))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.review.send_group_msg", _mock_send_group))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.clear.react_emoji", _mock_react))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.tutorial.send_group_msg", _mock_send_group))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.tutorial.send_private_msg", _mock_send_private))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.tutorial.send_group_forward_msg", _mock_send_group_forward))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.tutorial.react_emoji", _mock_react))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.newproblem.send_group_msg", _mock_send_group))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.newproblem.send_private_msg", _mock_send_private))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.newproblem.react_emoji", _mock_react))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.stubs.send_group_msg", _mock_send_group))
+    stack.enter_context(patch("sanwenyu.editorial_followup.send_private_msg", _mock_send_private))
+    stack.enter_context(patch("sanwenyu.editorial_followup.send_group_forward_msg", _mock_send_group_forward))
+    stack.enter_context(patch("sanwenyu.handlers.shared.call_chat_completion_result", _mock_chat_completion_result))
+    stack.enter_context(patch("sanwenyu.handlers.shared.judge_submission_result", _mock_judge_result))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.call_chat_completion_result", _mock_chat_completion_result))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _mock_judge_result))
     return stack
 
 
@@ -429,7 +434,7 @@ def test_submit_correct():
     _deepseek_response = {"correct": True, "reason": "Correct divisor sum", "reply": ""}
 
     async def _run_submit():
-        from kouhai_bot import editorial_followup
+        from sanwenyu import editorial_followup
 
         def _schedule_and_await(group_id, pid):
             editorial_tasks.append(
@@ -440,12 +445,12 @@ def test_submit_correct():
 
         editorial_tasks: list[asyncio.Task] = []
         with _all_patches(), \
-                patch("kouhai_bot.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")), \
+                patch("sanwenyu.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")), \
                 patch(
-                    "kouhai_bot.handlers.cmd.submit.schedule_post_solve_editorial_followup",
+                    "sanwenyu.handlers.cmd.submit.schedule_post_solve_editorial_followup",
                     _schedule_and_await,
                 ):
-            from kouhai_bot.handlers.cmd.submit import handle
+            from sanwenyu.handlers.cmd.submit import handle
             await handle(**_kwargs(_make_event(
                 "/submit Precompute J(x) for all x up to 1e6 using divisor enumeration, then check if A is in the map."
             )))
@@ -494,7 +499,7 @@ def test_submit_correct_uses_fresh_top5_nicknames_and_points():
     _deepseek_response = {"correct": True, "reason": "ok", "reply": ""}
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.submit import handle
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit valid idea"))))
 
     text = _last_text()
@@ -513,8 +518,8 @@ def test_submit_alias_dispatches_to_submit_handler():
     _deepseek_response = {"correct": False, "reason": "not enough detail", "reply": "不对"}
 
     with _all_patches():
-        from kouhai_bot.handlers import process_event
-        from kouhai_bot.handlers.registry import discover_commands
+        from sanwenyu.handlers import process_event
+        from sanwenyu.handlers.registry import discover_commands
         discover_commands()
         asyncio.run(process_event(_make_event("/sbm valid idea"), spawn_handlers=False))
 
@@ -552,8 +557,8 @@ def test_submit_starred_user_shows_own_group_top5():
     global _deepseek_response
     _deepseek_response = {"correct": True, "reason": "ok", "reply": ""}
 
-    with _all_patches(), patch("kouhai_bot.config._config", lazy):
-        from kouhai_bot.handlers.cmd.submit import handle
+    with _all_patches(), patch("sanwenyu.config._config", lazy):
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit valid idea"))))
 
     text = _last_text()
@@ -583,7 +588,7 @@ def test_submit_same_score_shares_rank():
     _deepseek_response = {"correct": True, "reason": "ok", "reply": ""}
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.submit import handle
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit valid idea"))))
 
     text = _last_text()
@@ -608,12 +613,12 @@ def test_submit_correct_schedules_editorial_without_blocking():
 
     async def _run():
         with _all_patches(), \
-                patch("kouhai_bot.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")), \
+                patch("sanwenyu.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")), \
                 patch(
-                    "kouhai_bot.handlers.cmd.submit.schedule_post_solve_editorial_followup",
+                    "sanwenyu.handlers.cmd.submit.schedule_post_solve_editorial_followup",
                     _record_schedule,
                 ):
-            from kouhai_bot.handlers.cmd.submit import handle
+            from sanwenyu.handlers.cmd.submit import handle
             await handle(**_kwargs(_make_event("/submit valid solution with enough detail")))
 
     asyncio.run(_run())
@@ -660,12 +665,12 @@ def test_do_daily_post_schedules_editorial_prefetch():
 
   async def _run():
       with _all_patches(), \
-              patch("kouhai_bot.handlers.cmd.newproblem._picker_args", return_value=["picker"]), \
-              patch("kouhai_bot.handlers.cmd.newproblem.asyncio.create_subprocess_exec", _mock_picker_proc), \
-              patch("kouhai_bot.handlers.cmd.newproblem.summarize_problem", _slow_summary), \
-              patch("kouhai_bot.handlers.cmd.newproblem._send_problem_forward_card", AsyncMock(return_value=(123, {}))), \
-              patch("kouhai_bot.handlers.cmd.newproblem.schedule_prefetch_editorial", _record_prefetch):
-          from kouhai_bot.handlers.cmd.newproblem import do_daily_post
+              patch("sanwenyu.handlers.cmd.newproblem._picker_args", return_value=["picker"]), \
+              patch("sanwenyu.handlers.cmd.newproblem.asyncio.create_subprocess_exec", _mock_picker_proc), \
+              patch("sanwenyu.handlers.cmd.newproblem.summarize_problem", _slow_summary), \
+              patch("sanwenyu.handlers.cmd.newproblem._send_problem_forward_card", AsyncMock(return_value=(123, {}))), \
+              patch("sanwenyu.handlers.cmd.newproblem.schedule_prefetch_editorial", _record_prefetch):
+          from sanwenyu.handlers.cmd.newproblem import do_daily_post
           await do_daily_post(GID, prefix="test")
 
   asyncio.run(_run())
@@ -706,12 +711,12 @@ def test_do_daily_post_does_not_switch_state_when_send_fails():
 
   async def _run():
       with _all_patches(), \
-              patch("kouhai_bot.handlers.cmd.newproblem._picker_args", return_value=["picker"]), \
-              patch("kouhai_bot.handlers.cmd.newproblem.asyncio.create_subprocess_exec", _mock_picker_proc), \
-              patch("kouhai_bot.handlers.cmd.newproblem.summarize_problem", AsyncMock(return_value=("summary", ""))), \
-              patch("kouhai_bot.handlers.cmd.newproblem._send_problem_forward_card", AsyncMock(return_value=(None, {}))), \
-              patch("kouhai_bot.handlers.cmd.newproblem.send_group_msg", _fail_send_group):
-          from kouhai_bot.handlers.cmd.newproblem import do_daily_post
+              patch("sanwenyu.handlers.cmd.newproblem._picker_args", return_value=["picker"]), \
+              patch("sanwenyu.handlers.cmd.newproblem.asyncio.create_subprocess_exec", _mock_picker_proc), \
+              patch("sanwenyu.handlers.cmd.newproblem.summarize_problem", AsyncMock(return_value=("summary", ""))), \
+              patch("sanwenyu.handlers.cmd.newproblem._send_problem_forward_card", AsyncMock(return_value=(None, {}))), \
+              patch("sanwenyu.handlers.cmd.newproblem.send_group_msg", _fail_send_group):
+          from sanwenyu.handlers.cmd.newproblem import do_daily_post
           await do_daily_post(GID, prefix="test")
 
   asyncio.run(_run())
@@ -731,7 +736,7 @@ def test_submit_correct_no_editorial_sends_nothing():
     _deepseek_response = {"correct": True, "reason": "ok", "reply": ""}
 
     async def _run():
-        from kouhai_bot import editorial_followup
+        from sanwenyu import editorial_followup
 
         editorial_tasks: list[asyncio.Task] = []
 
@@ -743,12 +748,12 @@ def test_submit_correct_no_editorial_sends_nothing():
             )
 
         with _all_patches(), \
-                patch("kouhai_bot.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")), \
+                patch("sanwenyu.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")), \
                 patch(
-                    "kouhai_bot.handlers.cmd.submit.schedule_post_solve_editorial_followup",
+                    "sanwenyu.handlers.cmd.submit.schedule_post_solve_editorial_followup",
                     _schedule,
                 ):
-            from kouhai_bot.handlers.cmd.submit import handle
+            from sanwenyu.handlers.cmd.submit import handle
             await handle(**_kwargs(_make_event("/submit valid solution text here")))
             if editorial_tasks:
                 await asyncio.gather(*editorial_tasks)
@@ -771,7 +776,7 @@ def test_submit_incorrect():
     _deepseek_response = {"correct": False, "reason": "Brute force too slow", "reply": "暴力不行哦，A最大1e12～"}
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.submit import handle
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit brute force from 1 to A"))))
 
     assert "暴力" in _last_text(), f"Expected reply, got: {_last_text()}"
@@ -792,8 +797,8 @@ def test_submit_llm_failure_shows_admin_message():
     async def _fail_judge(problem_text, submission, history=None):
         return ChatCompletionResult(text=None, failure_kind="service_unavailable")
 
-    with _all_patches(), patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _fail_judge):
-        from kouhai_bot.handlers.cmd.submit import handle
+    with _all_patches(), patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _fail_judge):
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit brute force from 1 to A"))))
 
     assert "模型服务出故障了，联系一下管理员帮帮忙吧～" in _last_text()
@@ -816,8 +821,8 @@ def test_submit_timeout_is_saved_as_context():
     async def _timeout_judge(problem_text, submission, history=None):
         return ChatCompletionResult(text=None, failure_kind="timeout")
 
-    with _all_patches(), patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _timeout_judge):
-        from kouhai_bot.handlers.cmd.submit import handle
+    with _all_patches(), patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _timeout_judge):
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit maybe too slow"))))
 
     with open(os.path.join(_data_dir(), "groups", str(GID), "scoreboard.json")) as f:
@@ -842,8 +847,8 @@ def test_submit_ac_backdoor_accepts_before_judge():
 
     with _all_patches(), \
             patch.dict(_LazyConfig._config, {"submit_ac_backdoor": "OPEN-SESAME"}), \
-            patch("kouhai_bot.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="CF542D")):
-        from kouhai_bot.handlers.cmd.submit import handle
+            patch("sanwenyu.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="CF542D")):
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit OPEN-SESAME"))))
 
     assert _has_sent("恭喜") or _has_sent("通过") or _has_sent("solved"), \
@@ -869,7 +874,7 @@ def test_submit_already_solved():
     })
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.submit import handle
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit my solution"))))
 
     assert _has_sent("已经有人解出"), \
@@ -913,7 +918,7 @@ def test_review_uses_latest_solved_problem():
     _deepseek_response = "这是上一道已通过题目的复盘。"
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.review import handle
+        from sanwenyu.handlers.cmd.review import handle
         asyncio.run(handle(**_kwargs(_make_event("/review 我当时为什么会想歪？"))))
 
     assert "上一道已通过题目" in _last_text(), f"Expected review reply, got: {_last_text()}"
@@ -959,7 +964,7 @@ def test_review_includes_editorial_in_llm_payload():
     _deepseek_response = "复盘一下你的思路。"
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.review import handle
+        from sanwenyu.handlers.cmd.review import handle
         asyncio.run(handle(**_kwargs(_make_event("/review 我当时哪里想错了？"))))
 
     review_calls = [c for c in _deepseek_calls if c.get("task") == "review"]
@@ -1007,7 +1012,7 @@ def test_review_includes_mentioned_user_context():
     _deepseek_response = "这是带 Bob 上下文的复盘。"
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.review import handle
+        from sanwenyu.handlers.cmd.review import handle
         event = _make_event(
             "/review @99 Bob 的做法为什么对？",
             message=[
@@ -1061,7 +1066,7 @@ def test_review_mentioned_users_are_deduped_and_filtered():
     _deepseek_response = "这是多 @ 上下文的复盘。"
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.review import handle
+        from sanwenyu.handlers.cmd.review import handle
         event = _make_event(
             "/review 多人上下文",
             message=[
@@ -1109,8 +1114,8 @@ def test_review_alias_dispatches_to_review_handler():
     _deepseek_response = "这是复盘回复。"
 
     with _all_patches():
-        from kouhai_bot.handlers import process_event
-        from kouhai_bot.handlers.registry import discover_commands
+        from sanwenyu.handlers import process_event
+        from sanwenyu.handlers.registry import discover_commands
         discover_commands()
         asyncio.run(process_event(_make_event("/rv 我哪里想错了"), spawn_handlers=False))
 
@@ -1126,7 +1131,7 @@ def test_review_requires_previous_solve():
     _write_scoreboard(GID, {"solves": [], "user_submissions": {}})
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.review import handle
+        from sanwenyu.handlers.cmd.review import handle
         asyncio.run(handle(**_kwargs(_make_event("/review 能讲讲这题吗？"))))
 
     assert "还没有已通过的题目可以 review" in _last_text(), f"Unexpected reply: {_last_text()}"
@@ -1153,7 +1158,7 @@ def test_review_uses_referenced_history_card_even_if_unsolved():
     _deepseek_response = "这是老题的复盘。"
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.review import handle
+        from sanwenyu.handlers.cmd.review import handle
         event = _make_event(
             "/review 这题当时该怎么想？",
             message=[
@@ -1180,7 +1185,7 @@ def test_review_rejects_current_problem_card():
     })
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.review import handle
+        from sanwenyu.handlers.cmd.review import handle
         event = _make_event(
             "/review 讲讲这题",
             message=[
@@ -1215,7 +1220,7 @@ def test_review_allows_current_problem_card_after_solve():
     _deepseek_response = "当前题已经解出，可以正常复盘。"
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.review import handle
+        from sanwenyu.handlers.cmd.review import handle
         event = _make_event(
             "/review 这题怎么想更顺？",
             message=[
@@ -1239,7 +1244,7 @@ def test_review_unknown_referenced_card_is_friendly():
     _write_scoreboard(GID, {"solves": [], "user_submissions": {}})
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.review import handle
+        from sanwenyu.handlers.cmd.review import handle
         event = _make_event(
             "/review 这题呢",
             message=[
@@ -1282,8 +1287,8 @@ def test_review_long_reply_is_chunked_into_one_forward_card():
     _deepseek_response = "A" * 1000 + "B" * 250
 
     with _all_patches():
-        with patch("kouhai_bot.handlers.cmd.submit.asyncio.sleep", AsyncMock()):
-            from kouhai_bot.handlers.cmd.review import handle
+        with patch("sanwenyu.handlers.cmd.submit.asyncio.sleep", AsyncMock()):
+            from sanwenyu.handlers.cmd.review import handle
             asyncio.run(handle(**_kwargs(_make_event("/review 细讲一下这题"))))
 
     assert len(_private_sent) == 1, f"Expected 1 private chunk, got {_private_sent}"
@@ -1324,8 +1329,8 @@ def test_review_llm_failure_shows_admin_message():
     async def _fail_review(*args, **kwargs):
         return ChatCompletionResult(text=None, failure_kind="service_unavailable")
 
-    with _all_patches(), patch("kouhai_bot.handlers.cmd.submit.call_chat_completion_result", _fail_review):
-        from kouhai_bot.handlers.cmd.review import handle
+    with _all_patches(), patch("sanwenyu.handlers.cmd.submit.call_chat_completion_result", _fail_review):
+        from sanwenyu.handlers.cmd.review import handle
         asyncio.run(handle(**_kwargs(_make_event("/review 细讲一下这题"))))
 
     assert "模型服务出故障了，联系一下管理员帮帮忙吧～" in _last_text()
@@ -1379,8 +1384,8 @@ def test_review_parallel_same_group():
 
     async def _run():
         with _all_patches():
-            with patch("kouhai_bot.handlers.cmd.submit.call_chat_completion_result", _wrap_llm_result(_parallel_review_deepseek)):
-                from kouhai_bot.handlers.cmd.review import handle
+            with patch("sanwenyu.handlers.cmd.submit.call_chat_completion_result", _wrap_llm_result(_parallel_review_deepseek)):
+                from sanwenyu.handlers.cmd.review import handle
                 ev1 = _kwargs(_make_event("/review first review question", group_id=GID, user_id=UID))
                 ev2 = _kwargs(_make_event("/review second review question", group_id=GID, user_id=OTHER_UID))
                 t1 = asyncio.create_task(handle(**ev1))
@@ -1446,8 +1451,8 @@ def test_review_same_user_runs_in_parallel_with_pending_archive_context():
 
     async def _run():
         with _all_patches():
-            with patch("kouhai_bot.handlers.cmd.submit.call_chat_completion_result", _wrap_llm_result(_serial_review_deepseek)):
-                from kouhai_bot.handlers.cmd.review import handle
+            with patch("sanwenyu.handlers.cmd.submit.call_chat_completion_result", _wrap_llm_result(_serial_review_deepseek)):
+                from sanwenyu.handlers.cmd.review import handle
                 ev1 = _kwargs(_make_event("/review first review question", group_id=GID, user_id=UID))
                 ev2 = _kwargs(_make_event("/review second review question", group_id=GID, user_id=UID))
                 t1 = asyncio.create_task(handle(**ev1))
@@ -1514,12 +1519,12 @@ def test_review_after_pending_submit_uses_snapshotted_solved_problem():
 
     async def _run():
         with _all_patches():
-            with patch("kouhai_bot.handlers.shared.call_chat_completion_result", _wrap_llm_result(_mixed_deepseek)), \
-                    patch("kouhai_bot.handlers.cmd.submit.call_chat_completion_result", _wrap_llm_result(_mixed_deepseek)), \
-                    patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_mixed_deepseek)), \
-                    patch("kouhai_bot.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")):
-                from kouhai_bot.handlers.cmd.submit import handle as submit_handle
-                from kouhai_bot.handlers.cmd.review import handle as review_handle
+            with patch("sanwenyu.handlers.shared.call_chat_completion_result", _wrap_llm_result(_mixed_deepseek)), \
+                    patch("sanwenyu.handlers.cmd.submit.call_chat_completion_result", _wrap_llm_result(_mixed_deepseek)), \
+                    patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_mixed_deepseek)), \
+                    patch("sanwenyu.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")):
+                from sanwenyu.handlers.cmd.submit import handle as submit_handle
+                from sanwenyu.handlers.cmd.review import handle as review_handle
                 ev1 = _kwargs(_make_event("/submit solve now", group_id=GID, user_id=UID))
                 ev2 = _kwargs(_make_event("/review 继续复盘上一题", group_id=GID, user_id=OTHER_UID))
                 t1 = asyncio.create_task(submit_handle(**ev1))
@@ -1548,7 +1553,7 @@ def test_submit_off_topic():
     _deepseek_response = {"correct": False, "reason": "", "reply": "", "reaction": "123"}
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.submit import handle
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit 傻逼"))))
 
     assert any(r[1] == "123" for r in _reacted), f"Expected 123, got {_reacted}"
@@ -1570,7 +1575,7 @@ def test_submit_operation_not_blocked():
     }
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.submit import handle
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit 记操作 1 为前 n 个排序"))))
 
     assert not any(r[1] == "123" for r in _reacted), f"Unexpected 123, got {_reacted}"
@@ -1585,7 +1590,7 @@ def test_submit_no_problem():
     _reset_state()
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.submit import handle
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit my solution"))))
 
     assert "没有" in _last_text(), f"Expected 'no problem', got: {_last_text()}"
@@ -1610,7 +1615,7 @@ def test_clarify_with_problem():
         json.dump([{"role": "assistant", "content": "J(x)=所有gcd(k,x/k)=1的因子k之和。"}], f)
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.clarify import handle
+        from sanwenyu.handlers.cmd.clarify import handle
         asyncio.run(handle(**_kwargs(_make_event("/clarify Joker函数是什么"))))
 
     assert "J(x)" in _last_text() or "因子" in _last_text(), \
@@ -1627,8 +1632,8 @@ def test_clarify_llm_failure_shows_admin_message():
     async def _fail_clarify(*args, **kwargs):
         return ChatCompletionResult(text=None, failure_kind="service_unavailable")
 
-    with _all_patches(), patch("kouhai_bot.handlers.cmd.submit.call_chat_completion_result", _fail_clarify):
-        from kouhai_bot.handlers.cmd.clarify import handle
+    with _all_patches(), patch("sanwenyu.handlers.cmd.submit.call_chat_completion_result", _fail_clarify):
+        from sanwenyu.handlers.cmd.clarify import handle
         asyncio.run(handle(**_kwargs(_make_event("/clarify Joker函数是什么"))))
 
     assert "模型服务出故障了，联系一下管理员帮帮忙吧～" in _last_text()
@@ -1648,7 +1653,7 @@ def test_clarify_no_problem():
     _reset_state()
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.clarify import handle
+        from sanwenyu.handlers.cmd.clarify import handle
         asyncio.run(handle(**_kwargs(_make_event("/clarify what is this"))))
 
     assert "没有" in _last_text(), f"Expected 'no problem', got: {_last_text()}"
@@ -1664,8 +1669,8 @@ def test_clarify_alias_dispatches_to_clarify_handler():
     _deepseek_response = '{"reply": "J(x) 是特殊因子和。", "reaction": ""}'
 
     with _all_patches():
-        from kouhai_bot.handlers import process_event
-        from kouhai_bot.handlers.registry import discover_commands
+        from sanwenyu.handlers import process_event
+        from sanwenyu.handlers.registry import discover_commands
         discover_commands()
         asyncio.run(process_event(_make_event("/clrf Joker函数是什么"), spawn_handlers=False))
 
@@ -1704,7 +1709,7 @@ def test_clear_removes_current_problem_history_and_reacts_ok():
     })
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.clear import handle
+        from sanwenyu.handlers.cmd.clear import handle
         asyncio.run(handle(**_kwargs(_make_event("/clear"))))
 
     assert not _sent, f"Expected no text reply on successful clear, got: {_sent}"
@@ -1722,13 +1727,43 @@ def test_clear_no_problem():
     _reset_state()
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.clear import handle
+        from sanwenyu.handlers.cmd.clear import handle
         asyncio.run(handle(**_kwargs(_make_event("/clear"))))
 
     assert not _sent, f"Expected no text reply on clear error, got: {_sent}"
     assert ("msg_001", "10060") in _reacted, f"Expected error reaction, got: {_reacted}"
     _cleanup()
     print("✅ clear: no problem")
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Tests: /guess and /tutorial
+# ═══════════════════════════════════════════════════════════════════════
+
+def test_guess_no_problem():
+    _reset_state()
+
+    with _all_patches():
+        from sanwenyu.handlers.cmd.guess import handle
+        asyncio.run(handle(**_kwargs(_make_event("/guess use dynamic programming"))))
+
+    assert "没有今日题目" in _last_text(), f"Expected no-problem reply, got: {_last_text()}"
+    _cleanup()
+    print("✅ guess: no problem")
+
+
+def test_tutorial_legacy_alias_dispatches_to_tutorial_handler():
+    _reset_state()
+
+    with _all_patches():
+        from sanwenyu.handlers import process_event
+        from sanwenyu.handlers.registry import discover_commands
+        discover_commands()
+        asyncio.run(process_event(_make_event("/tourial"), spawn_handlers=False))
+
+    assert "还没有今日题目" in _last_text(), f"Expected tutorial handler reply, got: {_last_text()}"
+    _cleanup()
+    print("✅ tutorial alias: /tourial")
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1739,7 +1774,7 @@ def test_problem_with_data():
     """With problem but no daily_msg.json → shows fallback message."""
     _reset_state(); _setup_problem()
     with _all_patches():
-        from kouhai_bot.handlers.cmd.stubs import handle_problem
+        from sanwenyu.handlers.cmd.stubs import handle_problem
         asyncio.run(handle_problem(**_kwargs(_make_event("/problem"))))
     assert "暂时无法重新发送" in _last_text(), f"Expected fallback: {_last_text()}"
     _cleanup()
@@ -1766,10 +1801,10 @@ def test_problem_rebuilds_forward_card_when_node_ids_are_stale():
         return 3000 + len(_forwarded)
 
     with _all_patches():
-        with patch("kouhai_bot.napcat.client.send_group_forward_msg", _fail_old_nodes), \
-                patch("kouhai_bot.handlers.cmd.newproblem.send_group_forward_msg", _fail_old_nodes), \
-                patch("kouhai_bot.handlers.cmd.newproblem.asyncio.sleep", AsyncMock()):
-            from kouhai_bot.handlers.cmd.stubs import handle_problem
+        with patch("sanwenyu.napcat.client.send_group_forward_msg", _fail_old_nodes), \
+                patch("sanwenyu.handlers.cmd.newproblem.send_group_forward_msg", _fail_old_nodes), \
+                patch("sanwenyu.handlers.cmd.newproblem.asyncio.sleep", AsyncMock()):
+            from sanwenyu.handlers.cmd.stubs import handle_problem
             asyncio.run(handle_problem(**_kwargs(_make_event("/problem"))))
 
     assert len(_private_sent) >= 2, f"Expected rebuilt self-sends, got {_private_sent}"
@@ -1797,7 +1832,7 @@ def test_problem_ignores_stale_daily_msg_pid():
     })
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.stubs import handle_problem
+        from sanwenyu.handlers.cmd.stubs import handle_problem
         asyncio.run(handle_problem(**_kwargs(_make_event("/problem"))))
 
     assert not _forwarded, f"Should not resend stale problem card: {_forwarded}"
@@ -1819,7 +1854,7 @@ def test_problem_solved_resend_shows_next_problem_hint():
     })
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.stubs import handle_problem
+        from sanwenyu.handlers.cmd.stubs import handle_problem
         asyncio.run(handle_problem(**_kwargs(_make_event("/problem"))))
 
     assert len(_forwarded) == 1, f"Expected problem card resend, got: {_forwarded}"
@@ -1840,7 +1875,7 @@ def test_problem_unsolved_resend_does_not_show_next_problem_hint():
     _write_scoreboard(GID, {"solves": [], "user_submissions": {}})
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.stubs import handle_problem
+        from sanwenyu.handlers.cmd.stubs import handle_problem
         asyncio.run(handle_problem(**_kwargs(_make_event("/problem"))))
 
     assert len(_forwarded) == 1, f"Expected problem card resend, got: {_forwarded}"
@@ -1853,7 +1888,7 @@ def test_problem_no_current_problem():
     """No current problem → friendly /newproblem hint."""
     _reset_state()
     with _all_patches():
-        from kouhai_bot.handlers.cmd.stubs import handle_problem
+        from sanwenyu.handlers.cmd.stubs import handle_problem
         asyncio.run(handle_problem(**_kwargs(_make_event("/problem"))))
     text = _last_text()
     assert "暂时不能查看当前题目" in text and "/newproblem" in text, \
@@ -1865,8 +1900,8 @@ def test_problem_no_current_problem():
 def test_problem_alias_dispatches_to_problem_handler():
     _reset_state()
     with _all_patches():
-        from kouhai_bot.handlers import process_event
-        from kouhai_bot.handlers.registry import discover_commands
+        from sanwenyu.handlers import process_event
+        from sanwenyu.handlers.registry import discover_commands
         discover_commands()
         asyncio.run(process_event(_make_event("/pb"), spawn_handlers=False))
     text = _last_text()
@@ -1879,7 +1914,7 @@ def test_problem_alias_dispatches_to_problem_handler():
 def test_tag_with_tags():
     _reset_state(); _setup_problem()
     with _all_patches():
-        from kouhai_bot.handlers.cmd.stubs import handle_tag
+        from sanwenyu.handlers.cmd.stubs import handle_tag
         asyncio.run(handle_tag(**_kwargs(_make_event("/tag"))))
     assert "number theory" in _last_text().lower(), f"No tags: {_last_text()}"
     _cleanup()
@@ -1902,7 +1937,7 @@ def test_scoreboard_with_data():
         {"user_id": OTHER_UID, "nickname": "FreshBob", "card": ""},
     ])
     with _all_patches():
-        from kouhai_bot.handlers.cmd.stubs import handle_scoreboard
+        from sanwenyu.handlers.cmd.stubs import handle_scoreboard
         asyncio.run(handle_scoreboard(**_kwargs(_make_event("/scoreboard"))))
     assert len(_private_sent) == 1, f"Expected scoreboard self-send, got {_private_sent}"
     text = _private_sent[0]["message"][0]["data"]["text"]
@@ -1938,7 +1973,7 @@ def test_scoreboard_same_score_shares_rank():
         {"user_id": OTHER_UID, "nickname": "FreshBob", "card": ""},
     ])
     with _all_patches():
-        from kouhai_bot.handlers.cmd.stubs import handle_scoreboard
+        from sanwenyu.handlers.cmd.stubs import handle_scoreboard
         asyncio.run(handle_scoreboard(**_kwargs(_make_event("/scoreboard"))))
     text = _private_sent[0]["message"][0]["data"]["text"]
     full_lines = text.splitlines()
@@ -1980,8 +2015,8 @@ def test_scoreboard_splits_default_and_starred_groups():
             )
         ],
     }
-    with _all_patches(), patch("kouhai_bot.config._config", lazy):
-        from kouhai_bot.handlers.cmd.stubs import handle_scoreboard
+    with _all_patches(), patch("sanwenyu.config._config", lazy):
+        from sanwenyu.handlers.cmd.stubs import handle_scoreboard
         asyncio.run(handle_scoreboard(**_kwargs(_make_event("/scoreboard"))))
 
     text = _private_sent[0]["message"][0]["data"]["text"]
@@ -2001,9 +2036,9 @@ def test_help_shows_short_aliases_and_configured_newproblem_cooldown():
     _reset_state()
     lazy = _LazyConfig()
     lazy._config = {**_config_dict(), "newproblem_cooldown": 90}
-    with _all_patches(), patch("kouhai_bot.config._config", lazy):
-        from kouhai_bot.handlers.cmd.help import handle
-        from kouhai_bot.handlers.registry import discover_commands
+    with _all_patches(), patch("sanwenyu.config._config", lazy):
+        from sanwenyu.handlers.cmd.help import handle
+        from sanwenyu.handlers.registry import discover_commands
         discover_commands()
         asyncio.run(handle(**_kwargs(_make_event("/help"))))
 
@@ -2019,6 +2054,11 @@ def test_help_shows_short_aliases_and_configured_newproblem_cooldown():
     assert "/tag — 查看当前题目的算法标签" in text, text
     assert "/review(/rv) 你的问题 — 默认复盘上一道已通过题；引用题目卡片可复盘旧题；@群友可带入其上下文" in text, text
     assert "/clarify(/clrf) 你的问题 — 向AI澄清题目细节，只回答题目本身不剧透做法" in text, text
+    assert "/clear — 清空自己在当前题目的提交与问答上下文" in text, text
+    assert "/guess 你的做法猜想 — 未解出时分析你的做法猜想和答案方向的契合度" in text, text
+    assert "/scoreboard — 累计解题排行" in text, text
+    assert "/status — 查看bot当前是否空闲" in text, text
+    assert "/tutorial(/tourial) — 当前题解出后发送一种可行答案" in text, text
     _cleanup()
     print("✅ help: aliases and dynamic cooldown")
 
@@ -2032,7 +2072,7 @@ def test_newproblem_cooldown():
         "user_submissions": {},
     })
     with _all_patches():
-        from kouhai_bot.handlers.cmd.newproblem import handle, _cooldowns
+        from sanwenyu.handlers.cmd.newproblem import handle, _cooldowns
         _cooldowns.clear()
         ran: list[int] = []
 
@@ -2040,7 +2080,7 @@ def test_newproblem_cooldown():
             ran.append(gid)
             return True
 
-        with patch("kouhai_bot.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
+        with patch("sanwenyu.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
             ev = _kwargs(_make_event("/newproblem"))
             asyncio.run(handle(**ev))
             asyncio.run(handle(**ev))
@@ -2055,7 +2095,7 @@ def test_newproblem_busy_rejects_concurrent_force():
     _setup_problem()
     _write_scoreboard(GID, {"solves": [], "user_submissions": {}})
     with _all_patches():
-        from kouhai_bot.handlers.cmd.newproblem import (
+        from sanwenyu.handlers.cmd.newproblem import (
             handle,
             _cooldowns,
             _newproblem_active,
@@ -2075,7 +2115,7 @@ def test_newproblem_busy_rejects_concurrent_force():
             ev = _kwargs(_make_event("/newproblem --force"))
             await asyncio.gather(handle(**ev), handle(**ev))
 
-        with patch("kouhai_bot.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
+        with patch("sanwenyu.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
             asyncio.run(_run())
     assert ran == [GID], f"Concurrent force should post once: {ran}"
     assert "正在准备中" in _last_text(), f"No busy rejection: {_last_text()}"
@@ -2088,7 +2128,7 @@ def test_newproblem_unsolved_rejects():
     _setup_problem()
     _write_scoreboard(GID, {"solves": [], "user_submissions": {}})
     with _all_patches():
-        from kouhai_bot.handlers.cmd.newproblem import handle, _cooldowns
+        from sanwenyu.handlers.cmd.newproblem import handle, _cooldowns
         _cooldowns.clear()
         ran: list[int] = []
 
@@ -2096,7 +2136,7 @@ def test_newproblem_unsolved_rejects():
             ran.append(gid)
             return True
 
-        with patch("kouhai_bot.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
+        with patch("sanwenyu.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
             asyncio.run(handle(**_kwargs(_make_event("/newproblem"))))
     assert not ran, f"Unsolved should not post: {ran}"
     assert "/newproblem --force" in _last_text(), _last_text()
@@ -2110,7 +2150,7 @@ def test_newproblem_force_posts_when_unsolved():
     _setup_problem()
     _write_scoreboard(GID, {"solves": [], "user_submissions": {}})
     with _all_patches():
-        from kouhai_bot.handlers.cmd.newproblem import handle, _cooldowns
+        from sanwenyu.handlers.cmd.newproblem import handle, _cooldowns
         _cooldowns.clear()
         ran: list[int] = []
 
@@ -2118,7 +2158,7 @@ def test_newproblem_force_posts_when_unsolved():
             ran.append(gid)
             return True
 
-        with patch("kouhai_bot.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
+        with patch("sanwenyu.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
             asyncio.run(handle(**_kwargs(_make_event("/newproblem --force"))))
     assert ran == [GID], f"Force should post: {ran}"
     _cleanup()
@@ -2130,9 +2170,9 @@ def test_newproblem_alias_force_posts_when_unsolved():
     _setup_problem()
     _write_scoreboard(GID, {"solves": [], "user_submissions": {}})
     with _all_patches():
-        from kouhai_bot.handlers import process_event
-        from kouhai_bot.handlers.cmd.newproblem import _cooldowns
-        from kouhai_bot.handlers.registry import discover_commands
+        from sanwenyu.handlers import process_event
+        from sanwenyu.handlers.cmd.newproblem import _cooldowns
+        from sanwenyu.handlers.registry import discover_commands
         _cooldowns.clear()
         discover_commands()
         ran: list[int] = []
@@ -2141,7 +2181,7 @@ def test_newproblem_alias_force_posts_when_unsolved():
             ran.append(gid)
             return True
 
-        with patch("kouhai_bot.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
+        with patch("sanwenyu.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
             asyncio.run(process_event(_make_event("/np --force"), spawn_handlers=False))
     assert ran == [GID], f"Alias force should post: {ran}"
     _cleanup()
@@ -2153,7 +2193,7 @@ def test_newproblem_force_requires_space():
     _setup_problem()
     _write_scoreboard(GID, {"solves": [], "user_submissions": {}})
     with _all_patches():
-        from kouhai_bot.handlers.cmd.newproblem import handle, _cooldowns
+        from sanwenyu.handlers.cmd.newproblem import handle, _cooldowns
         _cooldowns.clear()
         ran: list[int] = []
 
@@ -2161,7 +2201,7 @@ def test_newproblem_force_requires_space():
             ran.append(gid)
             return True
 
-        with patch("kouhai_bot.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
+        with patch("sanwenyu.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
             asyncio.run(handle(**_kwargs(_make_event("/newproblem--force"))))
     assert not ran, f"Missing space should not post: {ran}"
     assert "用法" in _last_text(), _last_text()
@@ -2178,7 +2218,7 @@ def test_newproblem_solved_posts():
         "user_submissions": {},
     })
     with _all_patches():
-        from kouhai_bot.handlers.cmd.newproblem import handle, _cooldowns
+        from sanwenyu.handlers.cmd.newproblem import handle, _cooldowns
         _cooldowns.clear()
         ran: list[int] = []
 
@@ -2186,7 +2226,7 @@ def test_newproblem_solved_posts():
             ran.append(gid)
             return True
 
-        with patch("kouhai_bot.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
+        with patch("sanwenyu.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
             asyncio.run(handle(**_kwargs(_make_event("/newproblem"))))
     assert ran == [GID], f"Solved should post: {ran}"
     _cleanup()
@@ -2214,8 +2254,8 @@ def test_newproblem_commit_settles_dynamic_wait_for_previous_problem():
         ],
     }
 
-    with _all_patches(), patch("kouhai_bot.config._config", lazy):
-        from kouhai_bot.handlers.cmd.newproblem import _commit_problem_state
+    with _all_patches(), patch("sanwenyu.config._config", lazy):
+        from sanwenyu.handlers.cmd.newproblem import _commit_problem_state
         asyncio.run(_commit_problem_state(GID, {
             "today": PID2,
             "contestId": 100,
@@ -2251,8 +2291,8 @@ def test_newproblem_commit_does_not_settle_unsolved_previous_problem():
         ],
     }
 
-    with _all_patches(), patch("kouhai_bot.config._config", lazy):
-        from kouhai_bot.handlers.cmd.newproblem import _commit_problem_state
+    with _all_patches(), patch("sanwenyu.config._config", lazy):
+        from sanwenyu.handlers.cmd.newproblem import _commit_problem_state
         asyncio.run(_commit_problem_state(GID, {
             "today": PID2,
             "contestId": 100,
@@ -2294,7 +2334,7 @@ def test_newproblem_notify_group_on_pick_failure():
     ), patch(
         "asyncio.sleep", AsyncMock()
     ):
-        from kouhai_bot.handlers.cmd.newproblem import _do_daily_post_locked
+        from sanwenyu.handlers.cmd.newproblem import _do_daily_post_locked
 
         # Test 1: notify_group=True → should send error message
         _sent.clear()
@@ -2352,9 +2392,9 @@ def test_newproblem_fallback_direct_saves_daily_msg_for_current_pid():
 
     with _all_patches(), \
             patch("asyncio.create_subprocess_exec", _mock_subprocess), \
-            patch("kouhai_bot.handlers.cmd.newproblem.send_group_forward_msg", _fail_forward), \
-            patch("kouhai_bot.handlers.cmd.newproblem.asyncio.sleep", AsyncMock()):
-        from kouhai_bot.handlers.cmd.newproblem import _do_daily_post_locked
+            patch("sanwenyu.handlers.cmd.newproblem.send_group_forward_msg", _fail_forward), \
+            patch("sanwenyu.handlers.cmd.newproblem.asyncio.sleep", AsyncMock()):
+        from sanwenyu.handlers.cmd.newproblem import _do_daily_post_locked
         posted = asyncio.run(_do_daily_post_locked(GID, prefix="刷新了一道新题🌟", notify_group=True))
 
     assert posted is True
@@ -2389,8 +2429,8 @@ def test_submit_scoreboard_update_settles_late_old_problem():
         ],
     }
 
-    with _all_patches(), patch("kouhai_bot.config._config", lazy):
-        from kouhai_bot.handlers.cmd.submit import _update_scoreboard_for_pid
+    with _all_patches(), patch("sanwenyu.config._config", lazy):
+        from sanwenyu.handlers.cmd.submit import _update_scoreboard_for_pid
         _update_scoreboard_for_pid(
             GID,
             UID,
@@ -2412,7 +2452,7 @@ def test_submit_scoreboard_update_settles_late_old_problem():
 def test_newproblem_picker_args_follow_env_rating_range():
     _reset_state()
     with _all_patches(), patch.dict(_LazyConfig._config, {"min_rating": 2100, "max_rating": 2900}):
-        from kouhai_bot.handlers.cmd.newproblem import _picker_args
+        from sanwenyu.handlers.cmd.newproblem import _picker_args
 
         args = _picker_args("pick", GID, "--with-statement")
 
@@ -2427,10 +2467,10 @@ def test_newproblem_picker_args_prefer_scheduler_override():
     _reset_state()
     with _all_patches(), \
             patch.dict(_LazyConfig._config, {"min_rating": 2000, "max_rating": 3000}), \
-            patch("kouhai_bot.scheduler.engine.load_group_configs", return_value={
+            patch("sanwenyu.scheduler.engine.load_group_configs", return_value={
                 GID: MagicMock(min_rating=2300, max_rating=2700)
             }):
-        from kouhai_bot.handlers.cmd.newproblem import _picker_args
+        from sanwenyu.handlers.cmd.newproblem import _picker_args
 
         args = _picker_args("pick", GID, "--with-statement")
 
@@ -2443,8 +2483,8 @@ def test_newproblem_picker_args_prefer_scheduler_override():
 def test_status_ignores_other_groups_and_reports_idle():
     _reset_state()
     with _all_patches():
-        with patch("kouhai_bot.handlers.cmd.submit.get_group_lock_status", return_value=None):
-            from kouhai_bot.handlers.cmd.stubs import handle_status
+        with patch("sanwenyu.handlers.cmd.submit.get_group_lock_status", return_value=None):
+            from sanwenyu.handlers.cmd.stubs import handle_status
             asyncio.run(handle_status(**_kwargs(_make_event("/status"))))
     assert "当前空闲" in _last_text(), f"Expected idle status, got: {_last_text()}"
     _cleanup()
@@ -2469,15 +2509,15 @@ def test_status_reports_newproblem_busy():
 
     async def _run():
         with _all_patches(), \
-                patch("kouhai_bot.handlers.cmd.submit.get_group_lock_status", return_value=None), \
-                patch("kouhai_bot.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
-            from kouhai_bot.handlers.cmd.newproblem import (
+                patch("sanwenyu.handlers.cmd.submit.get_group_lock_status", return_value=None), \
+                patch("sanwenyu.handlers.cmd.newproblem._do_daily_post_locked", _mock_post):
+            from sanwenyu.handlers.cmd.newproblem import (
                 handle as newproblem_handle,
                 _cooldowns,
                 _newproblem_active,
                 _newproblem_locks,
             )
-            from kouhai_bot.handlers.cmd.stubs import handle_status
+            from sanwenyu.handlers.cmd.stubs import handle_status
             _cooldowns.clear()
             _newproblem_active.clear()
             _newproblem_locks.clear()
@@ -2527,8 +2567,8 @@ def test_submit_parallel_replies_follow_completion_order():
 
     async def _run():
         with _all_patches():
-            with patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_ordered_deepseek)):
-                from kouhai_bot.handlers.cmd.submit import handle
+            with patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_ordered_deepseek)):
+                from sanwenyu.handlers.cmd.submit import handle
                 ev1 = _kwargs(_make_event("/submit first solution", group_id=GID, user_id=UID))
                 ev2 = _kwargs(_make_event("/submit second solution", group_id=GID, user_id=OTHER_UID))
                 t1 = asyncio.create_task(handle(**ev1))
@@ -2575,9 +2615,9 @@ def test_submit_parallel_late_wrong_results_are_reused_after_first_solve():
 
     async def _run():
         with _all_patches():
-            with patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_mixed_deepseek)), \
-                    patch("kouhai_bot.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")):
-                from kouhai_bot.handlers.cmd.submit import handle
+            with patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_mixed_deepseek)), \
+                    patch("sanwenyu.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")):
+                from sanwenyu.handlers.cmd.submit import handle
                 ev1 = _kwargs(_make_event("/submit first correct", group_id=GID, user_id=UID))
                 ev2 = _kwargs(_make_event("/submit second wrong", group_id=GID, user_id=OTHER_UID))
                 ev3 = _kwargs(_make_event("/submit third wrong", group_id=GID, user_id=UID2))
@@ -2634,9 +2674,9 @@ def test_submit_parallel_late_correct_result_does_not_update_scoreboard_twice():
 
     async def _run():
         with _all_patches():
-            with patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_both_correct_deepseek)), \
-                    patch("kouhai_bot.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")):
-                from kouhai_bot.handlers.cmd.submit import handle
+            with patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_both_correct_deepseek)), \
+                    patch("sanwenyu.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")):
+                from sanwenyu.handlers.cmd.submit import handle
                 ev1 = _kwargs(_make_event("/submit first correct", group_id=GID, user_id=UID))
                 ev2 = _kwargs(_make_event("/submit second correct", group_id=GID, user_id=OTHER_UID))
                 t1 = asyncio.create_task(handle(**ev1))
@@ -2691,8 +2731,8 @@ def test_submit_same_user_includes_previous_submit_history():
 
     async def _run():
         with _all_patches():
-            with patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_history_deepseek)):
-                from kouhai_bot.handlers.cmd.submit import handle
+            with patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_history_deepseek)):
+                from sanwenyu.handlers.cmd.submit import handle
                 ev1 = _kwargs(_make_event("/submit first solution", group_id=GID, user_id=UID))
                 ev2 = _kwargs(_make_event("/submit second solution", group_id=GID, user_id=UID))
                 t1 = asyncio.create_task(handle(**ev1))
@@ -2740,8 +2780,8 @@ def test_submit_same_user_later_submit_drops_unanswered_previous_submit():
 
     async def _run():
         with _all_patches():
-            from kouhai_bot.eventlog import EVENT_META_KEY, log_command_received, load_events
-            from kouhai_bot.handlers.cmd.submit import handle
+            from sanwenyu.eventlog import EVENT_META_KEY, log_command_received, load_events
+            from sanwenyu.handlers.cmd.submit import handle
 
             ev1_raw = _make_event("/submit first solution", group_id=GID, user_id=UID, message_id="drop_1")
             ev2_raw = _make_event("/submit second solution", group_id=GID, user_id=UID, message_id="drop_2")
@@ -2756,7 +2796,7 @@ def test_submit_same_user_later_submit_drops_unanswered_previous_submit():
             stale_request_id = ev1_raw[EVENT_META_KEY]["request_id"]
             event_date = ev1_raw[EVENT_META_KEY]["date"]
 
-            with patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_drop_deepseek)):
+            with patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_drop_deepseek)):
                 t1 = asyncio.create_task(handle(**_kwargs(ev1_raw)))
                 await asyncio.wait_for(first_started.wait(), timeout=1.0)
                 t2 = asyncio.create_task(handle(**_kwargs(ev2_raw)))
@@ -2812,9 +2852,9 @@ def test_clear_drops_unanswered_same_user_submit():
 
     async def _run():
         with _all_patches():
-            from kouhai_bot.eventlog import EVENT_META_KEY, log_command_received, load_events
-            from kouhai_bot.handlers.cmd.clear import handle as clear_handle
-            from kouhai_bot.handlers.cmd.submit import handle as submit_handle
+            from sanwenyu.eventlog import EVENT_META_KEY, log_command_received, load_events
+            from sanwenyu.handlers.cmd.clear import handle as clear_handle
+            from sanwenyu.handlers.cmd.submit import handle as submit_handle
 
             ev1_raw = _make_event("/submit first solution", group_id=GID, user_id=UID, message_id="clear_drop_1")
             ev1_raw[EVENT_META_KEY] = log_command_received(
@@ -2829,7 +2869,7 @@ def test_clear_drops_unanswered_same_user_submit():
             event_date = ev1_raw[EVENT_META_KEY]["date"]
             ev2 = _kwargs(_make_event("/clear", group_id=GID, user_id=UID, message_id="clear_drop_2"))
 
-            with patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_slow_deepseek)):
+            with patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_slow_deepseek)):
                 t1 = asyncio.create_task(submit_handle(**_kwargs(ev1_raw)))
                 await asyncio.wait_for(first_started.wait(), timeout=1.0)
                 t2 = asyncio.create_task(clear_handle(**ev2))
@@ -2877,10 +2917,10 @@ def test_dropping_unanswered_submit_unblocks_score_resolution():
 
     async def _run():
         with _all_patches(), \
-                patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_mixed_deepseek)), \
-                patch("kouhai_bot.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")):
-            from kouhai_bot.handlers.cmd.clear import handle as clear_handle
-            from kouhai_bot.handlers.cmd.submit import handle as submit_handle
+                patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_mixed_deepseek)), \
+                patch("sanwenyu.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")):
+            from sanwenyu.handlers.cmd.clear import handle as clear_handle
+            from sanwenyu.handlers.cmd.submit import handle as submit_handle
 
             t1 = asyncio.create_task(submit_handle(**_kwargs(_make_event(
                 "/submit first maybe correct", group_id=GID, user_id=UID, message_id="unblock_1"
@@ -2914,7 +2954,7 @@ def test_dropping_unanswered_submit_unblocks_score_resolution():
 
 def test_review_history_formats_types_and_submit_numbers():
     """Review context should separate interaction numbers from submit numbers."""
-    from kouhai_bot.handlers.cmd.submit import _build_review_history
+    from sanwenyu.handlers.cmd.submit import _build_review_history
 
     history = [
         {
@@ -2950,7 +2990,7 @@ def test_review_history_formats_types_and_submit_numbers():
 def test_user_submission_history_is_unbounded_and_upserts_by_request_id():
     _reset_state()
     _write_scoreboard(GID, {"solves": [], "user_submissions": {}})
-    from kouhai_bot.handlers.shared import load_user_submissions, save_user_submission
+    from sanwenyu.handlers.shared import load_user_submissions, save_user_submission
 
     for i in range(25):
         save_user_submission(GID, UID, {
@@ -2984,7 +3024,7 @@ def test_user_submission_history_is_unbounded_and_upserts_by_request_id():
 
 
 def test_clarify_prompt_hides_original_problem_identity():
-    from kouhai_bot.handlers.cmd.submit import CLARIFY_PROMPT
+    from sanwenyu.handlers.cmd.submit import CLARIFY_PROMPT
 
     assert "不要透露原题是哪一道" in CLARIFY_PROMPT
     assert "题号" in CLARIFY_PROMPT and "题目名" in CLARIFY_PROMPT
@@ -3017,10 +3057,10 @@ def test_submit_same_user_includes_previous_clarify_history():
 
     async def _run():
         with _all_patches():
-            with patch("kouhai_bot.handlers.cmd.submit.call_chat_completion_result", _wrap_llm_result(_mixed_deepseek)), \
-                    patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_mixed_deepseek)):
-                from kouhai_bot.handlers.cmd.clarify import handle as clarify_handle
-                from kouhai_bot.handlers.cmd.submit import handle as submit_handle
+            with patch("sanwenyu.handlers.cmd.submit.call_chat_completion_result", _wrap_llm_result(_mixed_deepseek)), \
+                    patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_mixed_deepseek)):
+                from sanwenyu.handlers.cmd.clarify import handle as clarify_handle
+                from sanwenyu.handlers.cmd.submit import handle as submit_handle
                 ev1 = _kwargs(_make_event("/clarify 输入格式是啥", group_id=GID, user_id=UID))
                 ev2 = _kwargs(_make_event("/submit 我想先确认输入格式再做", group_id=GID, user_id=UID))
                 t1 = asyncio.create_task(clarify_handle(**ev1))
@@ -3063,8 +3103,8 @@ def test_submit_parallel_different_groups_do_not_block():
 
     async def _run():
         with _all_patches():
-            with patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_grouped_deepseek)):
-                from kouhai_bot.handlers.cmd.submit import handle
+            with patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _wrap_deepseek_as_judge_result(_grouped_deepseek)):
+                from sanwenyu.handlers.cmd.submit import handle
                 ev1 = _kwargs(_make_event("/submit slow group1", group_id=GID, user_id=UID))
                 ev2 = _kwargs(_make_event("/submit fast group2", group_id=GID2, user_id=UID2))
                 t1 = asyncio.create_task(handle(**ev1))
@@ -3120,11 +3160,11 @@ def test_submit_user_group_blocked_within_window():
     }
 
     with ExitStack() as stack:
-        stack.enter_context(patch("kouhai_bot.config._config", lazy))
-        stack.enter_context(patch("kouhai_bot.napcat.client.send_group_msg", _mock_send_group))
-        stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.send_group_msg", _mock_send_group))
-        stack.enter_context(patch("kouhai_bot.handlers.shared.judge_submission_result", _mock_judge_result))
-        from kouhai_bot.handlers.cmd.submit import handle
+        stack.enter_context(patch("sanwenyu.config._config", lazy))
+        stack.enter_context(patch("sanwenyu.napcat.client.send_group_msg", _mock_send_group))
+        stack.enter_context(patch("sanwenyu.handlers.cmd.submit.send_group_msg", _mock_send_group))
+        stack.enter_context(patch("sanwenyu.handlers.shared.judge_submission_result", _mock_judge_result))
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit my solution text here"))))
 
     text = _last_text()
@@ -3178,11 +3218,11 @@ def test_submit_user_group_blocked_uses_dynamic_wait():
     }
 
     with ExitStack() as stack:
-        stack.enter_context(patch("kouhai_bot.config._config", lazy))
-        stack.enter_context(patch("kouhai_bot.napcat.client.send_group_msg", _mock_send_group))
-        stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.send_group_msg", _mock_send_group))
-        stack.enter_context(patch("kouhai_bot.handlers.shared.judge_submission_result", _mock_judge_result))
-        from kouhai_bot.handlers.cmd.submit import handle
+        stack.enter_context(patch("sanwenyu.config._config", lazy))
+        stack.enter_context(patch("sanwenyu.napcat.client.send_group_msg", _mock_send_group))
+        stack.enter_context(patch("sanwenyu.handlers.cmd.submit.send_group_msg", _mock_send_group))
+        stack.enter_context(patch("sanwenyu.handlers.shared.judge_submission_result", _mock_judge_result))
+        from sanwenyu.handlers.cmd.submit import handle
         asyncio.run(handle(**_kwargs(_make_event("/submit my solution text here"))))
 
     text = _last_text()
@@ -3216,6 +3256,8 @@ if __name__ == "__main__":
     test_clarify_with_problem()
     test_clarify_no_problem()
     test_clarify_alias_dispatches_to_clarify_handler()
+    test_guess_no_problem()
+    test_tutorial_legacy_alias_dispatches_to_tutorial_handler()
     test_problem_with_data()
     test_problem_rebuilds_forward_card_when_node_ids_are_stale()
     test_problem_ignores_stale_daily_msg_pid()

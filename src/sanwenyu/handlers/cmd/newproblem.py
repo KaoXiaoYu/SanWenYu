@@ -43,7 +43,7 @@ from ...statement_render import (
 )
 from .submit import run_group_state_update
 
-logger = logging.getLogger("kouhai-bot.cmd.newproblem")
+logger = logging.getLogger("SanWenYu.cmd.newproblem")
 
 _PROBLEM_RENDER_VERSION = 2
 _PROBLEM_EMOJI_RE = re.compile(
@@ -163,10 +163,10 @@ async def enqueue_force_new_problem(
 # ── Picker path ─────────────────────────────────────────────────────────
 
 _PICKER_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "kouhai_bot", "problems", "picker.py",
+    os.path.dirname(__file__), "..", "..", "..", "sanwenyu", "problems", "picker.py",
 )
 _PICKER_PATH = os.path.abspath(os.path.normpath(_PICKER_PATH))
-_STATEMENTS_FALLBACK_DIR = os.path.expanduser("~/.kouhai-bot/statements")
+_STATEMENTS_FALLBACK_DIR = os.path.expanduser("~/.SanWenYu/statements")
 
 
 def _effective_rating_range(group_id: int) -> tuple[int, int]:

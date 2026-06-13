@@ -9,9 +9,9 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.achievements import achievement_window, build_achievement_report
-from kouhai_bot.eventlog import TZ, log_command_finished, log_command_received
-from kouhai_bot.scheduler.engine import _normalize_enabled_jobs
+from sanwenyu.achievements import achievement_window, build_achievement_report
+from sanwenyu.eventlog import TZ, log_command_finished, log_command_received
+from sanwenyu.scheduler.engine import _normalize_enabled_jobs
 
 
 GID = 123456
@@ -41,7 +41,7 @@ def _log_command(
     at: datetime,
     status: str = "ok",
 ) -> None:
-    with patch("kouhai_bot.eventlog.now_tz", return_value=at):
+    with patch("sanwenyu.eventlog.now_tz", return_value=at):
         meta = log_command_received(
             group_id=group_id,
             user_id=user_id,
@@ -50,7 +50,7 @@ def _log_command(
             message_id=f"msg_{user_id}_{command}_{at.timestamp()}",
             raw_text=f"/{command} payload",
         )
-    with patch("kouhai_bot.eventlog.now_tz", return_value=at + timedelta(seconds=2)):
+    with patch("sanwenyu.eventlog.now_tz", return_value=at + timedelta(seconds=2)):
         log_command_finished(meta, status=status, problem="542D")
 
 
@@ -69,7 +69,7 @@ def test_achievement_window_uses_4am_cutoff():
 def test_build_achievement_report_counts_window_and_statuses():
     root, data_dir = _temp_data_dir()
     try:
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             _log_command(
                 user_id=1,
                 nickname="TooEarly",
@@ -152,7 +152,7 @@ def test_build_achievement_report_counts_window_and_statuses():
 def test_build_achievement_report_handles_empty_day():
     root, data_dir = _temp_data_dir()
     try:
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             report = build_achievement_report(
                 GID,
                 now=datetime(2026, 5, 15, 12, 0, tzinfo=TZ),

@@ -62,7 +62,7 @@ from ...napcat.client import (
     send_private_msg,
 )
 
-logger = logging.getLogger("kouhai-bot.cmd.submit")
+logger = logging.getLogger("SanWenYu.cmd.submit")
 
 _COMPUTE_CONCURRENCY = 8
 _runtime_loop: asyncio.AbstractEventLoop | None = None
@@ -472,7 +472,7 @@ def _update_scoreboard_for_pid(
 
 async def _reveal_problem_source(group_id: int) -> str:
     picker_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "kouhai_bot", "problems", "picker.py",
+        os.path.dirname(__file__), "..", "..", "..", "sanwenyu", "problems", "picker.py",
     )
     picker_path = os.path.abspath(os.path.normpath(picker_path))
     try:
@@ -1209,7 +1209,7 @@ class GroupCoordinator:
             self._log_finished(req, "already_solved", problem=result.get("pid", ""))
             await send_group_msg(req.group_id, [
                 build_at(req.user_id),
-                build_text(" 这题已经解出啦，想看可行答案可以发 /tourial，想讨论细节可以发 /review～"),
+                build_text(" 这题已经解出啦，想看可行答案可以发 /tutorial，想讨论细节可以发 /review～"),
             ])
             await self._finish_request(req)
             return

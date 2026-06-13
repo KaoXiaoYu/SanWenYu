@@ -23,10 +23,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from kouhai_bot.config import get_config
-from kouhai_bot.handlers.shared import robust_json_parse
-from kouhai_bot.llm import chat_completion
-from kouhai_bot.tutorials import MIN_EDITORIAL_LEN, _is_placeholder, extract_editorial
+from sanwenyu.config import get_config
+from sanwenyu.handlers.shared import robust_json_parse
+from sanwenyu.llm import chat_completion
+from sanwenyu.tutorials import MIN_EDITORIAL_LEN, _is_placeholder, extract_editorial
 
 from scrape_cf_tutorial import ScrapeError
 from scrape_cf_tutorial import build_problem_url_from_pid
