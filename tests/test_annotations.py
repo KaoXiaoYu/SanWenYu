@@ -40,12 +40,12 @@ def _cleanup():
         shutil.rmtree(_temp_dir)
     _temp_dir = None
     for name in [
-        "kouhai_bot.annotations",
-        "kouhai_bot.annotations.exporter",
-        "kouhai_bot.annotations.store",
-        "kouhai_bot.handlers.cmd.submit",
-        "kouhai_bot.handlers.cmd.review",
-        "kouhai_bot.handlers.cmd.clarify",
+        "sanwenyu.annotations",
+        "sanwenyu.annotations.exporter",
+        "sanwenyu.annotations.store",
+        "sanwenyu.handlers.cmd.submit",
+        "sanwenyu.handlers.cmd.review",
+        "sanwenyu.handlers.cmd.clarify",
     ]:
         sys.modules.pop(name, None)
 
@@ -163,7 +163,7 @@ async def _mock_chat_completion_result(messages, model="", task="", temperature=
         response_format=response_format,
         thinking=thinking,
     )
-    from kouhai_bot.llm import ChatCompletionResult
+    from sanwenyu.llm import ChatCompletionResult
     if result is None:
         return ChatCompletionResult(text=None, failure_kind="service_unavailable")
     return ChatCompletionResult(text=result, failure_kind=None)
@@ -195,20 +195,20 @@ async def _mock_http_post(action, data):
 
 def _all_patches():
     stack = ExitStack()
-    stack.enter_context(patch("kouhai_bot.config._config", _LazyConfig()))
-    stack.enter_context(patch("kouhai_bot.napcat.client.send_group_msg", _mock_send_group))
-    stack.enter_context(patch("kouhai_bot.napcat.client.react_emoji", _mock_react))
-    stack.enter_context(patch("kouhai_bot.napcat.client.send_private_msg", _mock_send_private))
-    stack.enter_context(patch("kouhai_bot.napcat.client.send_group_forward_msg", _mock_send_group_forward))
-    stack.enter_context(patch("kouhai_bot.napcat.client._http_post", _mock_http_post))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.send_group_msg", _mock_send_group))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.react_emoji", _mock_react))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.send_private_msg", _mock_send_private))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.send_group_forward_msg", _mock_send_group_forward))
-    stack.enter_context(patch("kouhai_bot.handlers.shared.call_chat_completion_result", _mock_chat_completion_result))
-    stack.enter_context(patch("kouhai_bot.handlers.shared.judge_submission_result", _mock_judge_result))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.call_chat_completion_result", _mock_chat_completion_result))
-    stack.enter_context(patch("kouhai_bot.handlers.cmd.submit.judge_submission_result", _mock_judge_result))
+    stack.enter_context(patch("sanwenyu.config._config", _LazyConfig()))
+    stack.enter_context(patch("sanwenyu.napcat.client.send_group_msg", _mock_send_group))
+    stack.enter_context(patch("sanwenyu.napcat.client.react_emoji", _mock_react))
+    stack.enter_context(patch("sanwenyu.napcat.client.send_private_msg", _mock_send_private))
+    stack.enter_context(patch("sanwenyu.napcat.client.send_group_forward_msg", _mock_send_group_forward))
+    stack.enter_context(patch("sanwenyu.napcat.client._http_post", _mock_http_post))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.send_group_msg", _mock_send_group))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.react_emoji", _mock_react))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.send_private_msg", _mock_send_private))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.send_group_forward_msg", _mock_send_group_forward))
+    stack.enter_context(patch("sanwenyu.handlers.shared.call_chat_completion_result", _mock_chat_completion_result))
+    stack.enter_context(patch("sanwenyu.handlers.shared.judge_submission_result", _mock_judge_result))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.call_chat_completion_result", _mock_chat_completion_result))
+    stack.enter_context(patch("sanwenyu.handlers.cmd.submit.judge_submission_result", _mock_judge_result))
     return stack
 
 
@@ -266,7 +266,7 @@ def test_collect_problem_annotation_bundle_includes_history():
     })
 
     with _all_patches():
-        from kouhai_bot.annotations.exporter import collect_problem_annotation_bundle
+        from sanwenyu.annotations.exporter import collect_problem_annotation_bundle
         bundle = collect_problem_annotation_bundle(GID, PID, source="test")
 
     assert bundle is not None
@@ -302,8 +302,8 @@ def test_sync_annotation_bundles_is_idempotent():
     })
 
     with _all_patches():
-        from kouhai_bot.annotations.exporter import sync_annotation_bundles
-        from kouhai_bot.annotations.store import list_bundle_summaries
+        from sanwenyu.annotations.exporter import sync_annotation_bundles
+        from sanwenyu.annotations.store import list_bundle_summaries
         first = sync_annotation_bundles(group_id=GID)
         second = sync_annotation_bundles(group_id=GID)
         summaries = list_bundle_summaries(status="pending", group_id=GID)
@@ -339,8 +339,8 @@ def test_collect_bundle_prefers_saved_group_summary():
     })
 
     with _all_patches():
-        from kouhai_bot.annotations.exporter import collect_problem_annotation_bundle
-        from kouhai_bot.handlers.shared import save_problem_summary
+        from sanwenyu.annotations.exporter import collect_problem_annotation_bundle
+        from sanwenyu.handlers.shared import save_problem_summary
         save_problem_summary(GID, PID, "这是群里发题时生成的中文题意。")
         bundle = collect_problem_annotation_bundle(GID, PID, source="test")
 
@@ -381,8 +381,8 @@ def test_submit_correct_exports_pending_annotation_bundle():
     }
 
     with _all_patches():
-        from kouhai_bot.handlers.cmd.submit import handle
-        with patch("kouhai_bot.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")):
+        from sanwenyu.handlers.cmd.submit import handle
+        with patch("sanwenyu.handlers.cmd.submit._reveal_problem_source", AsyncMock(return_value="")):
             asyncio.run(handle(
                 group_id=GID,
                 user_id=UID,

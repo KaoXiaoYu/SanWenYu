@@ -8,10 +8,10 @@ from pathlib import Path
 
 from aiohttp import web
 
-from kouhai_bot.annotations.exporter import sync_annotation_bundles
-from kouhai_bot.annotations.store import LABELED, PENDING, list_bundle_summaries, load_bundle, save_bundle
-from kouhai_bot.handlers.shared import get_problem_summary
-from kouhai_bot.handlers.shared import summarize_problem
+from sanwenyu.annotations.exporter import sync_annotation_bundles
+from sanwenyu.annotations.store import LABELED, PENDING, list_bundle_summaries, load_bundle, save_bundle
+from sanwenyu.handlers.shared import get_problem_summary
+from sanwenyu.handlers.shared import summarize_problem
 
 STATIC_DIR = Path(__file__).resolve().parent / "annotation_web"
 

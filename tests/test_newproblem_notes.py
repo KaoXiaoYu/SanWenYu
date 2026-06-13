@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 
 def test_build_notes_message_translates_and_formats():
-    from kouhai_bot.handlers.cmd import newproblem
+    from sanwenyu.handlers.cmd import newproblem
 
     async def _run():
         stmt = {"notes": "Line A<br />Line B"}
@@ -23,8 +23,8 @@ def test_build_notes_message_translates_and_formats():
     asyncio.run(_run())
 
 
-def test_build_notes_message_falls_back_to_normalized_original():
-    from kouhai_bot.handlers.cmd import newproblem
+def test_build_notes_message_does_not_fall_back_to_english_original():
+    from sanwenyu.handlers.cmd import newproblem
 
     async def _run():
         stmt = {
@@ -39,13 +39,20 @@ def test_build_notes_message_falls_back_to_normalized_original():
             AsyncMock(return_value=(None, "")),
         ):
             result = await newproblem._build_notes_message(stmt)
-        assert result == "样例解释：\nFirst line\nSecond & line"
+        assert result == ""
 
     asyncio.run(_run())
 
 
+def test_problem_content_removes_emoji_but_keeps_digits_and_latex():
+    from sanwenyu.handlers.cmd.newproblem import _sanitize_problem_content
+
+    text = "计算 1️ 到 10 的答案 😄，满足 $a_i \\le n$。"
+    assert _sanitize_problem_content(text) == "计算 1 到 10 的答案 ，满足 $a_i \\le n$。"
+
+
 def test_build_notes_message_keeps_model_output_verbatim():
-    from kouhai_bot.handlers.cmd import newproblem
+    from sanwenyu.handlers.cmd import newproblem
 
     async def _run():
         stmt = {"notes": "placeholder"}
@@ -65,7 +72,7 @@ def test_build_notes_message_keeps_model_output_verbatim():
 
 
 def test_build_notes_message_returns_empty_on_translate_exception():
-    from kouhai_bot.handlers.cmd import newproblem
+    from sanwenyu.handlers.cmd import newproblem
 
     async def _run():
         stmt = {"notes": "Line A<br />Line B"}

@@ -16,7 +16,7 @@ from ...napcat.client import (
 from ...private_judge import GROUP_SCOPE, PRIVATE_SCOPE
 from .submit import enqueue_clear_request
 
-logger = logging.getLogger("kouhai-bot.cmd.clear")
+logger = logging.getLogger("SanWenYu.cmd.clear")
 
 
 async def handle(group_id: int, user_id: int, sender: dict,

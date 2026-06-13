@@ -1,4 +1,4 @@
-# Kouhai Bot — Development Guide
+# SanWenYu — Development Guide
 
 Instructions for AI coding assistants working on this codebase.
 
@@ -20,7 +20,7 @@ NapCat (QQ) ──WS──> worker.py
   `usage` field = args suffix in /help display (e.g. `usage="你的做法"` → `/submit 你的做法`). Group help hides private-only details for `/setproblem`, `/sync`, and `/testcd` and only briefly mentions private judge; private help lists the private-judge command set.
   Group and private help are both delivered as merged-forward cards, with direct text
   only as fallback.
-- **Scheduler current-group config**: `~/.kouhai-bot/scheduler_config.json` stores job list + time overrides for `CURRENT_GROUP`. Jobs are defined in `scheduler/jobs.py`.
+- **Scheduler current-group config**: `~/.SanWenYu/scheduler_config.json` stores job list + time overrides for `CURRENT_GROUP`. Jobs are defined in `scheduler/jobs.py`.
 - **Command event log**: `eventlog.py` writes append-only JSONL command events by real local date. `achievements.py` reads those events for the 04:00-to-04:00 daily report. `eventlog_backfill.py` and `tools/backfill_command_events.py` can reconstruct recent saved submit/clarify/review events from `scoreboard.json`.
 - **Formula VL**: `problems/fetcher.py` handles CF formula images → Qwen-VL → inline LaTeX. Has white-bg preprocessing, hallucination detection, retry.
 - **Stale cache detection**: `picker.py:fetch_statement()` detects caches created before VL pipeline via `_vl_processed` flag. Stale caches with images are re-fetched with Qwen-VL. Problems with non-formula images (tex-graphics / diagrams) are skipped.
@@ -60,7 +60,7 @@ NapCat (QQ) ──WS──> worker.py
 
 ### config.yaml
 
-Runtime config comes from `config.yaml` at the repo root (or set `KOUHAI_CONFIG=/path/to/config.yaml`).
+Runtime config comes from `config.yaml` at the repo root (or set `SANWENYU_CONFIG=/path/to/config.yaml`).
 The file is **never committed** — `config.yaml` is in `.gitignore`.
 Copy `config.example.yaml` to `config.yaml` and fill in your values.
 
@@ -78,7 +78,7 @@ All providers use the OpenAI-compatible `/chat/completions` endpoint.
 | `napcat_http_host` | str | `127.0.0.1` | NapCat HTTP API host |
 | `napcat_http_port` | int | 3000 | NapCat HTTP API port |
 | `current_group` | int | — | QQ group served by the bot (**required**) |
-| `data_dir` | str | `~/.kouhai-bot` | Shared data directory |
+| `data_dir` | str | `~/.SanWenYu` | Shared data directory |
 
 #### `llm` section
 
@@ -157,7 +157,7 @@ CANNOT connect — they'll get ECONNREFUSED. Always use `0.0.0.0` when NapCat is
 
 This bot is a **reverse WebSocket server** plus a **NapCat HTTP API client**:
 
-- `kouhai_bot.napcat.client.NapCatServer` listens on `napcat_ws_host:napcat_ws_port`;
+- `sanwenyu.napcat.client.NapCatServer` listens on `napcat_ws_host:napcat_ws_port`;
   NapCat must connect to it through a OneBot11 `websocketClients` entry.
 - Message sending uses `napcat_http_host:napcat_http_port` and calls NapCat OneBot11
   HTTP actions such as `send_group_msg`, `send_private_msg`,
@@ -240,7 +240,7 @@ Useful checks:
 
 ```bash
 uv run status
-tail -n 80 ~/.kouhai-bot/logs/<group_id>/$(TZ=Asia/Shanghai date +%F).log
+tail -n 80 ~/.SanWenYu/logs/<group_id>/$(TZ=Asia/Shanghai date +%F).log
 docker logs --tail 160 napcat
 docker exec napcat getent hosts host.docker.internal
 curl -sS -X POST http://127.0.0.1:3000/get_status \
@@ -301,7 +301,7 @@ An empty `model_tag` disables the feature per-provider.
 
 ## Data Directory
 
-`~/.kouhai-bot/` — mirrors the old `~/.daily-problem/` structure:
+`~/.SanWenYu/` — mirrors the old `~/.daily-problem/` structure:
 ```
 groups/<gid>/state.json      # today's problem (+ posted_at unix ts when card was delivered)
 groups/<gid>/scoreboard.json # cumulative {solves, user_submissions}
@@ -702,7 +702,7 @@ continue using their admission-time problem snapshot while the new card is being
 # Batch: statements/*.json → tutorials/<pid>.json (quality check + 1 retry)
 uv run python tools/tutorial_tools.py crawl \
   --statements-dir statements \
-  --tutorials-dir ~/.kouhai-bot/tutorials
+  --tutorials-dir ~/.SanWenYu/tutorials
 
 # Single problem debug
 uv run python tools/scrape_cf_tutorial.py \
@@ -713,7 +713,7 @@ uv run python tools/scrape_cf_tutorial.py \
 uv run python tools/tutorial_tools.py validate --heuristic-only
 ```
 
-**Runtime** (`src/kouhai_bot/tutorials.py`):
+**Runtime** (`src/sanwenyu/tutorials.py`):
 
 | Function | Purpose |
 |----------|---------|
@@ -753,8 +753,8 @@ uv run python tools/tutorial_tools.py validate --heuristic-only
 Solved problems are exported for human labeling:
 
 - The first accepted `/submit` for a problem triggers `export_problem_annotation_bundle()`
-  from `src/kouhai_bot/annotations/exporter.py`
-- Exported bundles live under `~/.kouhai-bot/annotations/pending/`
+  from `src/sanwenyu/annotations/exporter.py`
+- Exported bundles live under `~/.SanWenYu/annotations/pending/`
 - Bundles include the statement snapshot, per-round `/submit` verdict data, the exact
   `history_before` seen by the judge, and mutable `human_label` fields
 - If a saved Chinese summary exists in `problem_summaries.json`, annotation export
@@ -785,7 +785,7 @@ Local HTML labeling UI:
 
 ## Adding a New Command
 
-1. Create `src/kouhai_bot/handlers/cmd/yourcommand.py`
+1. Create `src/sanwenyu/handlers/cmd/yourcommand.py`
 2. Define an `async def handle(group_id, user_id, sender, message_id, raw_text, segments, event)`
 3. Define `def register()` that calls `registry.register(CommandDef(...))`
 4. Set `aliases=[]` unless a new alias is explicitly approved
@@ -970,7 +970,7 @@ may occasionally break if extra reasoning content leaks into the response —
 ### 22. `uv run start` / `restart` / `stop` / `status` are selected by NapCat WS port
 The `start`, `restart`, `stop`, and `status` entrypoints must use the configured `NAPCAT_WS_PORT` to
 identify the target instance. Do not kill by broad process names like
-`kouhai_bot.worker`, because production and test instances may run at the same time.
+`sanwenyu.worker`, because production and test instances may run at the same time.
 `uv run start` should refuse to launch a second instance if that port already has a
 listener. `uv run restart` should stop the existing listener on that port, then
 start a fresh detached background instance. `uv run stop` should stop the existing
@@ -1042,14 +1042,14 @@ editorial paths in `tests/test_commands.py`).
 ## Startup
 
 ```bash
-cd ~/kouhai-bot
+cd ~/SanWenYu
 uv run start
 ```
 
 `uv run start` launches a detached background instance. stdout/stderr are appended to:
 
 ```text
-~/.kouhai-bot/logs/<CURRENT_GROUP>/YYYY-MM-DD.log
+~/.SanWenYu/logs/<CURRENT_GROUP>/YYYY-MM-DD.log
 ```
 
 If the configured `NAPCAT_WS_PORT` is already in use, `uv run start` should print a
@@ -1062,8 +1062,8 @@ current worktree.
 For a foreground debugging session, you can still run:
 
 ```bash
-cd ~/kouhai-bot
-uv run python -m kouhai_bot.worker
+cd ~/SanWenYu
+uv run python -m sanwenyu.worker
 ```
 
 The worker starts the WS server, discovers commands, registers scheduler jobs,
@@ -1073,7 +1073,7 @@ external cron or process manager needed.
 For an already-managed local instance, prefer:
 
 ```bash
-cd ~/kouhai-bot
+cd ~/SanWenYu
 uv run restart
 ```
 
@@ -1119,22 +1119,22 @@ instances are running; stop or start only the selected instance.
 
 **Start / Restart / Stop / Status procedure:**
 ```bash
-cd ~/kouhai-bot
+cd ~/SanWenYu
 uv run start
 ```
 
 ```bash
-cd ~/kouhai-bot
+cd ~/SanWenYu
 uv run restart
 ```
 
 ```bash
-cd ~/kouhai-bot
+cd ~/SanWenYu
 uv run stop
 ```
 
 ```bash
-cd ~/kouhai-bot
+cd ~/SanWenYu
 uv run status
 ```
 
@@ -1146,16 +1146,16 @@ sudo docker logs napcat --tail 5 | grep <selected-ws-port>  # should NOT show er
 
 ## Data Migration
 
-Old data lives at `~/.daily-problem/`. New data at `~/.kouhai-bot/`.
+Old data lives at `~/.daily-problem/`. New data at `~/.SanWenYu/`.
 The old directory is preserved as backup — never delete it.
 
 To migrate a group's data:
 ```bash
-cp -r ~/.daily-problem/groups/<gid> ~/.kouhai-bot/groups/<gid>
+cp -r ~/.daily-problem/groups/<gid> ~/.SanWenYu/groups/<gid>
 ```
 
-The picker subprocess is the in-repository `src/kouhai_bot/problems/picker.py`.
-It uses `~/.kouhai-bot` as its default data directory, with group-specific state
+The picker subprocess is the in-repository `src/sanwenyu/problems/picker.py`.
+It uses `~/.SanWenYu` as its default data directory, with group-specific state
 selected by the `--group` flag.
 
 ## Design Decisions

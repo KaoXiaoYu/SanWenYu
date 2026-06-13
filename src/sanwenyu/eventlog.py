@@ -17,7 +17,7 @@ from typing import Any
 from .config import get_config
 from .context import get_display_name
 
-logger = logging.getLogger("kouhai-bot.eventlog")
+logger = logging.getLogger("SanWenYu.eventlog")
 TZ = timezone(timedelta(hours=8))
 MAX_TEXT_PREVIEW = 200
 EVENT_META_KEY = "_command_event_log"

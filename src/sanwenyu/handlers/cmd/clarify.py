@@ -17,7 +17,7 @@ from ...napcat.client import (
 from ...private_judge import GROUP_SCOPE, PRIVATE_SCOPE
 from .submit import enqueue_clarify_request
 
-logger = logging.getLogger("kouhai-bot.cmd.clarify")
+logger = logging.getLogger("SanWenYu.cmd.clarify")
 
 
 async def handle(group_id: int, user_id: int, sender: dict,

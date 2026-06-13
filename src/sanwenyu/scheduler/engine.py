@@ -17,7 +17,7 @@ from typing import Awaitable, Callable
 
 from ..config import get_config
 
-logger = logging.getLogger("kouhai-bot.scheduler")
+logger = logging.getLogger("SanWenYu.scheduler")
 DEFAULT_ENABLED_JOBS = ["daily_achievements", "daily_post", "contest_check"]
 
 # ── Job registry ────────────────────────────────────────────────────────

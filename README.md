@@ -1,163 +1,374 @@
-# Kouhai Bot
+# SanWenYu
 
-<p align="center">
-  <img src="snake_trio.jpg" width="400" alt="snake trio mascot">
-</p>
+SanWenYu 是一个面向 QQ 群的 Codeforces 每日题机器人。它可以随机抓取 CF 题目、把题面渲染成图片发送到群里、用配置文件里的大模型 API 和用户交互，并在题目解出后提供复盘和可行题解。
+基于Kouhai-bot的修改版，添加了个别功能，如果你有好的建议可以提出，或者自己vibecoding
+## 功能概览
 
-口嗨 Bot 是一个 QQ 群算法竞赛助手 —— CF 题目随机推送、AI judge 评审、群聊交流、比赛预告。
+- `/newproblem`：发布一道新题；当前题未解出时不会直接换题。
+- `/newproblem --force`：强制换题。
+- `/problem`：重新发送当前题。
+- `/submit <做法>`：提交你的思路，让 AI 判断是否能推出正确解法。
+- `/clarify <问题>`：只澄清题意细节，不给解法提示。
+- `/guess <猜想/做法>`：当前题未解出时，分析你的做法和答案方向的契合度，但不直接泄露标准解法。
+- `/review <问题>`：题目解出后复盘做法、错误原因或复杂度。
+- `/tourial`：题目解出后发送一种可行答案。
+- `/tag`：题目解出后查看标签；未解出前会保密。
+- `/scoreboard`：查看累计解题排行。
+- `/status`：查看机器人是否正在处理任务。
+- `/help`：查看命令帮助。
 
----
+## 环境准备
 
-## 开始配置！
-
-### 1. 准备环境
-
-首先，clone这个仓库。
+项目需要 Python 3.11+。推荐用 `uv` 管理依赖：
 
 ```bash
-git clone https://github.com/Nerovix/kouhai-bot.git
-cd kouhai-bot
-```
-
-这个项目需要 `uv` 管理依赖：
-
-```bash
+git clone https://github.com/KaoXiaoYu/SanWenYu.git
+cd SanWenYu
 uv sync
 ```
 
-这个项目需要一个 QQ 账号，以及需要配置 NapCat 用于连接 QQ。目前 QQ 合法地允许同一个人（同一个身份证）拥有至多 5 个 QQ 账号，只需要正常注册即可。关于 NapCat，可参考 `DEPENDENCIES.md` 配置，或者直接寻求 AI 协助。
+如果你不用 `uv`，也可以用普通虚拟环境安装：
 
-> NapCat 可简单理解为能够将 QQ 变成 API，只需要发出 HTTP 请求就能完成 QQ 操作。NapCat 可以反向代理出多个端口。本项目假定一个 bot 实例对应于一个端口和一个群，bot 独占使用此端口。如果你想配多个bot实例服务于多个群聊，需要修改 NapCat 配置启用更多端口。每个bot实例独立工作，但关于群聊的上下文在`~/.kouhai-bot/`下全局保存。
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e .
+```
 
-### 2. 配置
+## Playwright / Firefox 渲染
 
-配置写在 `config.yaml` 中。这个文件会被 gitignore 忽略，以防你的群号等隐私泄露。复制仓库中的 example 以填写你自己的配置：
+题面图片渲染使用 Playwright 打开浏览器页面，页面中用 MathJax 渲染 LaTeX 公式，再截图成 PNG。
+
+默认浏览器是 Firefox。所有平台都需要先安装 Python 依赖，再安装 Playwright 管理的 Firefox 浏览器内核：
+
+```bash
+python -m playwright install firefox
+```
+
+如果你用 `uv`：
+
+```bash
+uv run python -m playwright install firefox
+```
+
+### Linux
+
+Linux 服务器建议直接安装 Playwright 的 Firefox 和系统依赖：
+
+```bash
+python -m playwright install --with-deps firefox
+```
+
+如果你用 `uv`：
+
+```bash
+uv run python -m playwright install --with-deps firefox
+```
+
+`--with-deps` 会尝试安装 Firefox 无头运行所需的系统库，通常需要 `sudo` 权限。如果服务器不能自动安装依赖，可以手动安装常见依赖：
+
+```bash
+sudo apt update
+sudo apt install -y \
+  libgtk-3-0 libdbus-glib-1-2 libasound2 \
+  libx11-xcb1 libxcomposite1 libxdamage1 libxfixes3 \
+  libxrandr2 libgbm1 libnss3 libatk-bridge2.0-0 \
+  fonts-noto-cjk fonts-noto-color-emoji
+```
+
+Linux 服务器不需要桌面环境，Playwright 默认以 headless 模式启动 Firefox。建议显式指定：
+
+```bash
+export SANWENYU_RENDER_BROWSER=firefox
+```
+
+如果渲染出的中文是方块，安装中文字体：
+
+```bash
+sudo apt install -y fonts-noto-cjk
+```
+
+如果 emoji 不是彩色或显示为空白，安装 emoji 字体：
+
+```bash
+sudo apt install -y fonts-noto-color-emoji
+```
+
+如果在 Docker、极简云服务器或 CI 环境中运行，优先使用 Playwright 下载的 Firefox，不要依赖系统自带 Firefox；Playwright 下载的浏览器和 Playwright API 兼容性最好。
+
+### macOS
+
+macOS 上安装 Playwright Firefox：
+
+```bash
+python -m playwright install firefox
+```
+
+如果你用 `uv`：
+
+```bash
+uv run python -m playwright install firefox
+```
+
+macOS 一般不需要额外系统依赖。系统自带中文字体和 Apple Color Emoji，题面中的中文与 emoji 通常可以直接渲染。
+
+如果你使用 shell 启动机器人，建议写入环境变量：
+
+```bash
+export SANWENYU_RENDER_BROWSER=firefox
+```
+
+如果你用 launchd、pm2、systemd 之类的方式托管进程，需要把 `SANWENYU_RENDER_BROWSER=firefox` 写进对应服务配置里，而不是只在当前终端里 export。
+
+### 浏览器选择
+
+渲染器默认读取环境变量 `SANWENYU_RENDER_BROWSER`，可选值：
+
+Windows PowerShell:
+
+```powershell
+set SANWENYU_RENDER_BROWSER=firefox
+```
+
+Linux/macOS:
+
+```bash
+export SANWENYU_RENDER_BROWSER=firefox
+```
+
+可选值包括：
+
+- `firefox`
+- `chromium`
+- `webkit`
+
+如果 Firefox 启动失败，代码会依次尝试 Firefox、Chromium、WebKit。若所有 Playwright 浏览器都不可用，会退回到 Pillow 文本图片渲染；这个兜底模式不会真正渲染 LaTeX。
+
+### MathJax 网络要求
+
+注意：MathJax 当前从 CDN 加载。运行环境需要能访问：
+
+```text
+https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js
+```
+
+如果服务器不能联网，需要把 MathJax 文件下载到本地，并修改 `src/sanwenyu/statement_render.py` 里的 `<script src="...">` 路径。
+
+### 快速自检
+
+安装后可以用下面的命令确认 Playwright 能启动 Firefox：
+
+```bash
+python -m playwright install firefox
+python -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.firefox.launch(); print('firefox ok'); b.close(); p.stop()"
+```
+
+如果使用 `uv`：
+
+```bash
+uv run python -m playwright install firefox
+uv run python -c "from playwright.sync_api import sync_playwright; p=sync_playwright().start(); b=p.firefox.launch(); print('firefox ok'); b.close(); p.stop()"
+```
+
+Linux 上如果这一步报缺少系统库，优先重新运行：
+
+```bash
+python -m playwright install --with-deps firefox
+```
+
+## 配置文件
+
+复制示例配置：
 
 ```bash
 cp config.example.yaml config.yaml
 ```
 
-然后打开 config.yaml 进行编辑。不了解的配置可以直接留为默认值。
+Windows PowerShell:
 
-#### QQ Bot & NapCat 
-
-```
-# ── QQ Bot ──
-# ── NapCat WebSocket (bot listens here, NapCat connects to this) ──
-```
-写入 bot 的 QQ 号和你的 NapCat 配置。端口是每实例、每群聊唯一的。如果你不确定如何配置，寻求 AI 协助。
-
-#### LLM 服务
-
-```
-# ── LLM Fallback ──
+```powershell
+Copy-Item config.example.yaml config.yaml
 ```
 
-配置你的 LLM API。bot 需要 API 作为口粮才能思考！
+然后编辑 `config.yaml`。常见字段包括：
 
-目前接口仅兼容 OpenAI 格式，不过大部分厂商都提供此格式。bot 在回答问题时会按照 llm 下的配置从上到下按顺序尝试连接。如果你不清楚如何填写配置，向 AI 提供你的厂商、模型需求和 apikey 以寻求帮助。
+- `bot_qq`：机器人 QQ 号。
+- `current_group`：机器人服务的 QQ 群号。
+- `napcat_http_host` / `napcat_http_port`：NapCat HTTP API 地址。
+- `napcat_ws_host` / `napcat_ws_port`：机器人监听的反向 WebSocket 地址。
+- `llm_provider` 和各类 API key/model：大模型服务配置。
+- `qwen_api_key` / `qwen_model`：用于识别 Codeforces 原题中公式图片的视觉模型。
+- `min_rating` / `max_rating`：每日题难度范围。
+- `daily_post_cron`：定时发题时间。
+- `newproblem_cooldown`：手动刷题冷却时间。
 
-> 配置中的 model_tag 是一个标记，会附在 bot 的每个需要 llm 接入的请求尾部，以便用户知晓自己的请求是由哪个模型处理的，~~以便开骂~~
+`config.yaml` 已被 `.gitignore` 忽略，不要把真实 API key 提交到仓库。
 
-> 在我们的测试中，gpt-5.5 high 基本胜任，qwen-3.7-max 也相当不错，Deepseek v4 pro 可用，但由于其 CoT 较长，响应慢，推理能力也确实不及前者，建议只作为 API 连接不稳时的 fallback
+## NapCat 连接
 
-#### 公式识别
+机器人通过 NapCat 的 OneBot11 HTTP API 发送 QQ 消息，并通过反向 WebSocket 接收 QQ 事件。
 
-```
-# ── Qwen-VL (formula image recognition) ──
-```
+你需要在 NapCat 中配置：
 
-bot 需要一个视觉模型才能阅读被渲染成图像的公式。实测 `qwen-vl-max` 效果很好，且阿里云提供了足够的免费额度。你也可以使用其他视觉模型。
+- HTTP 服务端口，对应 `napcat_http_host` / `napcat_http_port`。
+- 反向 WebSocket，连接到机器人监听地址，对应 `napcat_ws_host` / `napcat_ws_port`。
+- 让机器人 QQ 加入 `current_group` 指定的群。
 
-#### 配置群聊
+一个机器人实例默认服务一个群。如果你要服务多个群，建议运行多个实例，并为每个实例使用不同的配置文件、端口和数据目录。
 
-```
-# ── Group ──
-```
+## 启动
 
-配置群号。
-
-#### 打星 
-
-```
-# ── User Groups (optional) ──
-```
-
-我们将 Bot 配置到了北航集训队群聊当中，希望鼓励新生交流学习，但是出现了老选手把 bot 当摸鱼玩具高强度娱乐的情况。为了处理此情况，我们设计了打星功能。可以允许将打星用户从正式榜中踢出并单独记榜、设置打星用户在题目公布后的一段时间内无法提交以给小朋友提供更多机会。
-
-如果配置了提交等待，等待时间会跟着最近解题情况变化：这题是你做出来的，下一题多等一会；不是你做出来的，就慢慢降回最低等待。
-
-#### 题目
-
-```
-# ── Problem Selection ──
-```
-
-配置从cf上爬取题目的题目难度上下限。`daily_post_cron` 允许 bot 在冷群时鼓励大家讨论题目，默认为每天中午 12 点。
-
-#### 宵禁
-
-```
-# ── Curfew (宵禁) ──
-```
-
-允许配置在每天的某一时间段禁止 `\submit`。此功能是为了防止同学~~熬夜摸鱼哐哐口题~~
-
-### 3. 启动!
+使用 `uv`：
 
 ```bash
 uv run start
 ```
 
-`start` 会用 `nohup` 在配置好的 NapCat 端口后台启动 bot。bot 还支持 `uv run restart/stop/status`，表示重启、停止、查看bot状态。
+普通 Python 环境：
 
-### 4. 进群口题
+```bash
+python -m sanwenyu.main start
+```
 
-将 bot 拉入群聊。进入群聊发送 `/help` (无需at bot)，开始口胡吧！
+其他管理命令：
 
-### 5. bot 知道什么？
+```bash
+uv run status
+uv run restart
+uv run stop
+```
 
-这里解释 bot 的几种 llm 请求的上下文。
+启动后，在目标 QQ 群中发送：
 
-> 一点补充:bot 会在开始处理你的 llm 消息时给你点一个“眼睛“表情。如果阅读你的请求后他认为你说的是 nonsense 或者纯捣乱，他会给你的消息点一个摇手指的QQ表情（/no）（除review）。
+```text
+/help
+```
 
-#### clarify
+如果机器人能回复，说明 NapCat 和配置已经连通。
 
-bot 能看到原题面和简述题面。如果 bot 简述题意丢了东西，可以让 bot 详细阐述细节，甚至复述题面。
+## 题面抓取与图片渲染
 
-#### submit
+发题流程大致是：
 
-bot 能看到原题面他与你在此题的所有对话历史（包括所有clarify、review、submit），但 bot 不知道题解。在判断你的提交是否通过时，bot 被要求进行双向的考察：你的提交能拓展出一个正确的做法、且你的提交包含了此做法的所有关键要素。
+1. 从 Codeforces 抓取候选题。
+2. 下载原题 HTML。
+3. 用视觉模型识别 CF 的公式图片，转成 LaTeX。
+4. 调用大模型生成不包含题名和编号的中文题意摘要。
+5. 清除中文题意、样例和样例解释中的 emoji/keycap 数字。
+6. 只把中文题意及其中保留的 LaTeX 交给 Firefox + MathJax 渲染。
+7. 截图生成 PNG，发送到 QQ 群；英文原题正文不会出现在图片中。
 
-#### review
+缓存文件在：
 
-你可以引用**题目卡片**来复盘任意题目。除非是当前题目且还未被解出。bot 能看到复盘的题面他与你在此题的所有对话历史（包括所有clarify、review、submit），如果爬到了题解，bot还能看到题解。如果你在 `/review` 里 @ 了其他群友，bot 也会看到这些群友在此题的 submit/clarify/review 上下文，方便讨论他人做法。
+```text
+<data_dir>/statements/<pid>.json
+```
 
-### 6. misc
+渲染出的 PNG 在：
 
-#### 爬取题解！
+```text
+<data_dir>/groups/<group_id>/rendered/
+```
 
-爬取到的题解会在题目被解决时同步发送到群聊中，而且可以提高review的质量。
+原题缓存仍用于生成中文摘要和供 AI 判断，但不会直接作为发题图片内容。
 
-爬取题解的工具全部保留在 `/tools` 中，但较为杂乱。请直接寻求 AI 的协助。
+## 解题交互规则
 
-#### CF 赛事预告！
+在当前题未解出前：
 
-`daily_post_cron` 会同时爬取 CF 在接下来 24h 内的比赛并发出预告。bot 会 `@所有人`，建议给 bot 一个管理员以使其生效。
+- `/clarify` 只回答题意、输入输出、样例等问题。
+- `/guess` 可以评价你的思路是否接近，但不会直接给完整做法。
+- `/tag` 不会展示标签。
+- 机器人不会主动暴露题号、题名、比赛编号或链接。
+
+当有人通过 `/submit` 被判定为正确后：
+
+- 计入 scoreboard。
+- 可以使用 `/review` 复盘。
+- 可以使用 `/tourial` 查看一种可行答案。
+- `/tag` 开始展示标签。
+
+## 题解缓存
+
+官方题解由 `tools/` 下的脚本抓取，缓存到：
+
+```text
+<data_dir>/tutorials/<pid>.json
+```
+
+当题目解出后，机器人会尝试翻译并发送题解。翻译缓存保存到：
+
+```text
+<data_dir>/tutorial_translations/<pid>.txt
+```
+
+如果 `/tourial` 提示没有题解缓存，说明该题还没有抓到可用 editorial。
+
+## 常见问题
+
+### 中文显示成方块或乱码
+
+浏览器截图模式通常不会有这个问题。如果退回 Pillow 模式，服务器需要安装中文字体。
+
+Windows 推荐：
+
+```text
+C:\Windows\Fonts\msyh.ttc
+C:\Windows\Fonts\simsun.ttc
+```
+
+Linux 推荐安装 Noto CJK：
+
+```bash
+sudo apt install fonts-noto-cjk fonts-noto-color-emoji
+```
+
+### LaTeX 没有渲染
+
+检查：
+
+1. 是否安装了 Playwright Firefox：
+
+```bash
+python -m playwright install firefox
+```
+
+2. 服务器是否能访问 MathJax CDN。
+3. 是否设置了错误的 `SANWENYU_RENDER_BROWSER`。
+
+### 为什么输出图里没有英文原题或原题图片
+
+这是当前设计：发到群里的图片只包含翻译后的中文题意、中文样例标签和其中保留的 LaTeX 公式，不直接渲染英文原题 HTML，也不嵌入原题图片。
+
+### 机器人没有反应
+
+检查：
+
+1. `current_group` 是否是目标群号。
+2. `bot_qq` 是否是机器人 QQ。
+3. NapCat HTTP 和反向 WebSocket 端口是否匹配。
+4. 机器人是否过滤了自己的消息。
+5. 日志里是否有 API key、网络或模型超时错误。
 
 ## 开发
 
-如果你是 AI，请记得阅读AGENTS.md。『Human』
+运行语法检查：
 
-## 开销
+```bash
+python -m compileall src tests
+```
 
-此 bot 是纯 chatbot，token 开销很少。根据我们的测试，每天的消耗不超过 1-2M tokens。若使用 Deepseek V4 Pro，大约开销是每日2-3r。
+运行测试：
 
-## Bot 的诞生
+```bash
+python -m pytest
+```
 
-LLM 在算法竞赛上的能力已超出大部分选手。这可以被视为威胁，但也应被视为机会：学习高阶算法竞赛技巧变得前所未有地容易。
+如果使用 `uv`：
 
-为了支持大家从 LLM 中学习， Nerovix、jhdonghj、guangmingzhengda 一起搭建并完善了 bot 最初的 release 版本；同时，感谢北航 XCPC 群的群友和🐍们提出了很多宝贵的意见。
+```bash
+uv run pytest
+```
 
 ## License
 

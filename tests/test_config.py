@@ -6,8 +6,8 @@ import yaml
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot import config
-from kouhai_bot.config import BotConfig
+from sanwenyu import config
+from sanwenyu.config import BotConfig
 
 
 def _make_yaml(**overrides) -> str:
@@ -39,7 +39,7 @@ def _from_yaml(yaml_str: str, monkeypatch, tmp_path) -> BotConfig:
     monkeypatch.setattr(config, "_try_load_dotenv", lambda: None)
     config_path = tmp_path / "config.yaml"
     config_path.write_text(yaml_str, encoding="utf-8")
-    monkeypatch.setenv("KOUHAI_CONFIG", str(config_path))
+    monkeypatch.setenv("SANWENYU_CONFIG", str(config_path))
     return BotConfig.from_yaml()
 
 

@@ -10,8 +10,8 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.eventlog import TZ
-from kouhai_bot.eventlog_backfill import backfill_command_events
+from sanwenyu.eventlog import TZ
+from sanwenyu.eventlog_backfill import backfill_command_events
 
 
 def _parse_dt(value: str | None) -> datetime | None:

@@ -29,7 +29,7 @@ from .tutorials import (
     prefetch_editorial_zh,
 )
 
-logger = logging.getLogger("kouhai-bot.editorial_followup")
+logger = logging.getLogger("SanWenYu.editorial_followup")
 
 _TUTORIAL_FORWARD_CHUNK_SIZE = 5000
 _PREFETCH_WAIT_TIMEOUT_SEC = 600

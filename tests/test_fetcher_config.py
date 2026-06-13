@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
-from kouhai_bot import config
-from kouhai_bot.problems import fetcher
+from sanwenyu import config
+from sanwenyu.problems import fetcher
 
 
 def test_qwen_config_uses_yaml_config_when_env_missing(monkeypatch):

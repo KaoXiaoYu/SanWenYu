@@ -10,15 +10,15 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.eventlog import (
+from sanwenyu.eventlog import (
     EVENT_META_KEY,
     TZ,
     load_events,
     log_command_finished,
     log_command_received,
 )
-from kouhai_bot.handlers import dispatch, process_event
-from kouhai_bot.handlers.registry import CommandDef, register
+from sanwenyu.handlers import dispatch, process_event
+from sanwenyu.handlers.registry import CommandDef, register
 
 
 GID = 123456
@@ -57,8 +57,8 @@ def test_eventlog_uses_real_date_without_logical_day():
     root, data_dir = _temp_data_dir()
     try:
         fixed = datetime(2026, 5, 15, 3, 59, 12, tzinfo=TZ)
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)), \
-                patch("kouhai_bot.eventlog.now_tz", return_value=fixed):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)), \
+                patch("sanwenyu.eventlog.now_tz", return_value=fixed):
             meta = log_command_received(
                 group_id=GID,
                 user_id=UID,
@@ -68,7 +68,7 @@ def test_eventlog_uses_real_date_without_logical_day():
                 raw_text="/submit solution",
             )
 
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             events = load_events(GID, "2026-05-15")
             assert meta["date"] == "2026-05-15"
             assert len(events) == 1
@@ -82,7 +82,7 @@ def test_eventlog_uses_real_date_without_logical_day():
 def test_eventlog_finished_links_to_received_request():
     root, data_dir = _temp_data_dir()
     try:
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             meta = log_command_received(
                 group_id=GID,
                 user_id=UID,
@@ -93,7 +93,7 @@ def test_eventlog_finished_links_to_received_request():
             )
             log_command_finished(meta, status="correct", problem="542D")
 
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             events = load_events(GID, meta["date"])
             assert [item["type"] for item in events] == ["received", "finished"]
             assert events[1]["request_id"] == events[0]["request_id"]
@@ -121,14 +121,14 @@ def test_dispatch_writes_received_and_finished_events():
         ))
 
         async def _run():
-            with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+            with patch("sanwenyu.config._config", _TestConfig(data_dir)):
                 await dispatch(_event())
                 await asyncio.sleep(0.05)
 
         asyncio.run(_run())
 
         assert seen and seen[0].get("request_id")
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             events = load_events(GID, seen[0]["date"])
             assert [item["type"] for item in events] == ["received", "finished"]
             assert events[0]["command"] == "elogtest"
@@ -156,13 +156,13 @@ def test_process_event_can_wait_for_handler_completion():
         ))
 
         async def _run():
-            with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+            with patch("sanwenyu.config._config", _TestConfig(data_dir)):
                 await process_event(_event("/elogsync hello"), spawn_handlers=False)
 
         asyncio.run(_run())
 
         assert seen and seen[0].get("request_id")
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             events = load_events(GID, seen[0]["date"])
             assert [item["type"] for item in events] == ["received", "finished"]
             assert events[0]["command"] == "elogsync"
@@ -189,14 +189,14 @@ def test_process_event_canonicalizes_alias_for_handler_and_eventlog():
         ))
 
         async def _run():
-            with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+            with patch("sanwenyu.config._config", _TestConfig(data_dir)):
                 await process_event(_event("/ea hello"), spawn_handlers=False)
 
         asyncio.run(_run())
 
         assert seen
         assert seen[0] == "/elogalias hello"
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             events = load_events(GID, seen[1]["date"])
             assert [item["type"] for item in events] == ["received", "finished"]
             assert events[0]["command"] == "elogalias"
@@ -225,14 +225,14 @@ def test_process_event_canonicalizes_command_case_for_handler():
         ))
 
         async def _run():
-            with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+            with patch("sanwenyu.config._config", _TestConfig(data_dir)):
                 await process_event(_event("/ELOGCASE hello"), spawn_handlers=False)
 
         asyncio.run(_run())
 
         assert seen
         assert seen[0] == "/elogcase hello"
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             events = load_events(GID, seen[1]["date"])
             assert [item["type"] for item in events] == ["received", "finished"]
             assert events[0]["command"] == "elogcase"
@@ -260,14 +260,14 @@ def test_process_event_accepts_leading_variation_selector_before_command():
         ))
 
         async def _run():
-            with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+            with patch("sanwenyu.config._config", _TestConfig(data_dir)):
                 await process_event(_event("\ufe0f/elogvs hello"), spawn_handlers=False)
 
         asyncio.run(_run())
 
         assert seen
         assert seen[0] == "/elogvs hello"
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             events = load_events(GID, seen[1]["date"])
             assert [item["type"] for item in events] == ["received", "finished"]
             assert events[0]["command"] == "elogvs"

@@ -3,7 +3,7 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.napcat.client import (
+from sanwenyu.napcat.client import (
     build_plain_message,
     build_private_reaction_message,
     build_text,
@@ -83,7 +83,7 @@ def test_get_doubt_friends_add_requests(monkeypatch):
         calls.append((action, data))
         return {"status": "ok", "data": [{"flag": "uid-flag", "uin": "456"}]}
 
-    monkeypatch.setattr("kouhai_bot.napcat.client._http_post", fake_http_post)
+    monkeypatch.setattr("sanwenyu.napcat.client._http_post", fake_http_post)
 
     import asyncio
 
@@ -100,7 +100,7 @@ def test_set_doubt_friends_add_request(monkeypatch):
         calls.append((action, data))
         return {"status": "ok", "data": None}
 
-    monkeypatch.setattr("kouhai_bot.napcat.client._http_post", fake_http_post)
+    monkeypatch.setattr("sanwenyu.napcat.client._http_post", fake_http_post)
 
     import asyncio
 

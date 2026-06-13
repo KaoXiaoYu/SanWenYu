@@ -85,13 +85,13 @@ from ...napcat.client import (
     send_private_msg,
 )
 
-logger = logging.getLogger("kouhai-bot.cmd.submit")
+logger = logging.getLogger("SanWenYu.cmd.submit")
 
 _COMPUTE_CONCURRENCY = 8
 _runtime_loop: asyncio.AbstractEventLoop | None = None
 _compute_sem: asyncio.Semaphore | None = None
 _coordinators: dict[tuple[str, int], "GroupCoordinator"] = {}
-_USER_CONTEXT_WRITERS = {"submit", "clarify", "review"}
+_USER_CONTEXT_WRITERS = {"submit", "clarify", "review", "guess"}
 _REVIEW_FORWARD_THRESHOLD = 200
 _REVIEW_CHUNK_SIZE = 3000
 _LLM_FAILURE_TEXT = " 模型服务出故障了，联系一下管理员帮帮忙吧～"
@@ -173,6 +173,26 @@ REVIEW_PROMPT = """你是一个算法竞赛群的选手。群友已经做出了�
 - 用户可能在聊自己的做法或情绪，请认真读懂他的发言再回应，不要敷衍套用题解。
 
 回复是 QQ 纯文字，不用 Markdown/LaTeX。回复不要以 @ 开头。"""
+
+
+GUESS_PROMPT = """你是一个算法竞赛群的陪练。当前每日题还没有被解出，群友发来了自己的猜想/做法，想知道它和正确解法方向的契合度。
+
+你的任务：
+根据题面、中文简述、用户猜想，以及可能附带的官方 Editorial（仅你可见），判断用户思路是否接近可行答案。
+
+严格限制：
+1. 当前题未解出，禁止直接给出完整做法、关键定理、关键转化、标准答案、题号、题名、比赛编号、链接。
+2. 可以评价“方向很接近/有明显缺口/大概率不对”，并指出用户已有想法中的漏洞或需要验证的边界。
+3. 如果用户已经基本说出了正确核心，可以肯定契合度，但不要补全剩余关键步骤；用“你这条线可以继续推，重点检查……”这种方式。
+4. 如果用户思路和答案不契合，要说明不契合的原因，但不要把正确做法倒出来。
+5. 回复要短，QQ 口吻，2~5 句。不要 Markdown 标题，不要列表编号。
+
+必须输出 JSON：
+{"reply": "发给群友的文字", "reaction": ""}
+
+如果用户内容明显和题目无关，输出：
+{"reply": "", "reaction": "123"}
+"""
 
 
 @dataclass
@@ -529,7 +549,7 @@ def _update_scoreboard_for_pid(
 
 async def _reveal_problem_source(group_id: int) -> str:
     picker_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "kouhai_bot", "problems", "picker.py",
+        os.path.dirname(__file__), "..", "..", "..", "sanwenyu", "problems", "picker.py",
     )
     picker_path = os.path.abspath(os.path.normpath(picker_path))
     try:
@@ -693,6 +713,8 @@ class GroupCoordinator:
                 req.compute_result = await self._compute_submit(req)
             elif req.kind == "clarify":
                 req.compute_result = await self._compute_clarify(req)
+            elif req.kind == "guess":
+                req.compute_result = await self._compute_guess(req)
             elif req.kind == "review":
                 req.compute_result = await self._compute_review(req)
             else:
@@ -712,6 +734,8 @@ class GroupCoordinator:
                 await self._finalize_submit(req)
             elif req.kind == "clarify":
                 await self._finalize_clarify(req)
+            elif req.kind == "guess":
+                await self._finalize_guess(req)
             elif req.kind == "review":
                 await self._finalize_review(req)
             elif req.kind == "clear":
@@ -734,7 +758,7 @@ class GroupCoordinator:
         if req.submit_already_solved_at_enqueue:
             return {"kind": "already_solved", "pid": pid}
 
-        problem_text = load_problem_statement(pid)
+        problem_text = load_problem_statement(pid, include_identity=False)
         if not problem_text:
             return {"kind": "no_statement", "pid": pid}
 
@@ -762,7 +786,7 @@ class GroupCoordinator:
         pid = req.target_pid
         if not pid:
             return {"kind": "no_problem"}
-        problem_text = load_problem_statement(pid)
+        problem_text = load_problem_statement(pid, include_identity=False)
         if not problem_text:
             return {"kind": "no_statement", "pid": pid}
 
@@ -795,6 +819,50 @@ class GroupCoordinator:
             return {"kind": "unavailable", "pid": pid}
 
         return {"kind": "clarify", "pid": pid, "parsed": parsed, "model_tag": result.model_tag}
+
+    async def _compute_guess(self, req: PendingRequest) -> dict:
+        pid = req.target_pid
+        if not pid:
+            return {"kind": "no_problem"}
+        if _is_problem_solved_in_scoreboard(req.group_id, pid):
+            return {"kind": "already_solved", "pid": pid}
+
+        problem_text = load_problem_statement(pid, include_identity=False)
+        if not problem_text:
+            return {"kind": "no_statement", "pid": pid}
+
+        summary = _load_latest_group_summary(req.group_id)
+        editorial = get_official_editorial(pid)
+        editorial_text = editorial.text[:8000] if editorial else "(暂无官方题解缓存；仅根据题面判断)"
+        history = await self._load_user_problem_history_for_request(req, pid)
+        history_str = _build_review_history(history)
+
+        cfg = get_config()
+        await react_emoji(req.message_id, random.choice(["128064", "289"]))
+        result = await _call_llm_limited(
+            [
+                {"role": "system", "content": GUESS_PROMPT},
+                {"role": "user", "content": (
+                    f"题目中文简述：\n{summary[:2000] if summary else '(暂无简述)'}\n\n"
+                    f"题目英文原文（不要向外透露题名/题号）：\n{problem_text[:6000]}\n\n"
+                    f"用户此前在本题的交互记录：\n{history_str if history_str else '(无)'}\n\n"
+                    f"官方 Editorial（仅你可见，不要复述给用户）：\n{editorial_text}\n\n"
+                    f"用户猜想/做法：\n{req.payload}"
+                )},
+            ],
+            task="clarify",
+            timeout=cfg.clarify_timeout_sec,
+            response_format={"type": "json_object"},
+            thinking={"type": "enabled"},
+        )
+        if not result.text:
+            return {"kind": result.failure_kind or "error", "pid": pid}
+
+        parsed = robust_json_parse(result.text)
+        if not parsed:
+            return {"kind": "unavailable", "pid": pid}
+
+        return {"kind": "guess", "pid": pid, "parsed": parsed, "model_tag": result.model_tag}
 
     async def _compute_review(self, req: PendingRequest) -> dict:
         pid = req.review_pid
@@ -1223,6 +1291,82 @@ class GroupCoordinator:
         self._log_finished(req, "ok", problem=pid)
         await self._finish_request(req)
 
+    async def _finalize_guess(self, req: PendingRequest) -> None:
+        result = req.compute_result or {}
+        kind = result.get("kind")
+        if kind == "no_problem":
+            self._log_finished(req, "no_problem")
+            await send_group_msg(req.group_id, build_plain_message(
+                f"@{req.nickname} 还没有今日题目哦～"
+            ))
+            await self._finish_request(req)
+            return
+        if kind == "already_solved":
+            self._log_finished(req, "already_solved", problem=result.get("pid", ""))
+            await send_group_msg(req.group_id, [
+                build_at(req.user_id),
+                build_text(" 这题已经解出啦，想看可行答案可以发 /tutorial，想讨论细节可以发 /review～"),
+            ])
+            await self._finish_request(req)
+            return
+        if kind == "no_statement":
+            self._log_finished(req, "no_statement", problem=result.get("pid", ""))
+            await send_group_msg(req.group_id, build_plain_message(
+                f"@{req.nickname} 抱歉，题面缓存不可用～"
+            ))
+            await self._save_context_record(
+                req,
+                _context_record(req, result="no_statement", problem=result.get("pid", "")),
+            )
+            await self._finish_request(req)
+            return
+        if kind in {"timeout", "service_unavailable", "cancelled", "error", "unavailable"}:
+            status = "timeout" if kind == "timeout" else "service_unavailable"
+            self._log_finished(req, status, problem=result.get("pid", ""))
+            await self._send_llm_failure(req)
+            await self._save_context_record(
+                req,
+                _context_record(req, result=status, problem=result.get("pid", "")),
+            )
+            await self._finish_request(req)
+            return
+
+        pid = result.get("pid", "")
+        parsed = result.get("parsed", {})
+        if parsed.get("reaction") == "123":
+            self._log_finished(req, "offtopic", problem=pid)
+            await react_emoji(req.message_id, "123")
+            await self._finish_request(req)
+            return
+
+        reply = parsed.get("reply", "") or ""
+        if not reply:
+            self._log_finished(req, "service_unavailable", problem=pid)
+            await self._send_llm_failure(req)
+            await self._save_context_record(
+                req,
+                _context_record(req, result="service_unavailable", problem=pid),
+            )
+            await self._finish_request(req)
+            return
+
+        if len(reply) > 600:
+            reply = reply[:600] + "…"
+        model_tag = result.get("model_tag", "")
+        if model_tag:
+            reply = reply.rstrip() + model_tag
+        await send_group_msg(req.group_id, [
+            build_at(req.user_id),
+            build_text(f" {reply}"),
+        ])
+
+        await self._save_context_record(
+            req,
+            _context_record(req, result="guess", reply=reply, problem=pid),
+        )
+        self._log_finished(req, "ok", problem=pid)
+        await self._finish_request(req)
+
     async def _finalize_review(self, req: PendingRequest) -> None:
         result = req.compute_result or {}
         kind = result.get("kind")
@@ -1520,6 +1664,33 @@ async def enqueue_clarify_request(
         nickname=get_display_name(sender),
         scope=scope,
         payload=question,
+        target_pid=pid,
+        event_log=event_log,
+    )
+    await coord.enqueue(req)
+    await req.done_event.wait()
+
+
+async def enqueue_guess_request(
+    group_id: int,
+    user_id: int,
+    sender: dict,
+    message_id: str,
+    guess: str,
+    event_log: dict | None = None,
+) -> None:
+    coord = _get_coordinator(group_id)
+    problem = get_today_problem(group_id)
+    pid = problem.get("today", "") if problem else ""
+    req = PendingRequest(
+        kind="guess",
+        group_id=group_id,
+        user_id=user_id,
+        sender=sender,
+        message_id=message_id,
+        command="guess",
+        nickname=get_display_name(sender),
+        payload=guess,
         target_pid=pid,
         event_log=event_log,
     )

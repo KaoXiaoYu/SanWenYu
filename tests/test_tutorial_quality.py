@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "tools"))
 from tutorial_tools import is_tutorial_quality_ok
 from tutorial_tools import tutorial_quality_reason
 
-from kouhai_bot.tutorials import MIN_EDITORIAL_LEN
+from sanwenyu.tutorials import MIN_EDITORIAL_LEN
 
 
 def _long(prefix: str = "x") -> str:

@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.handlers import process_event
-from kouhai_bot.friend_requests import approve_doubt_friend_requests
+from sanwenyu.handlers import process_event
+from sanwenyu.friend_requests import approve_doubt_friend_requests
 
 
 def _friend_request(user_id: int = 456, flag: str = "flag-123") -> dict:
@@ -39,9 +39,9 @@ def test_friend_request_from_service_group_member_is_approved(monkeypatch):
         calls.append({"flag": flag, "approve": approve, "remark": remark})
         return True
 
-    monkeypatch.setattr("kouhai_bot.friend_requests.get_config", _cfg)
-    monkeypatch.setattr("kouhai_bot.napcat.client._http_post", fake_http_post)
-    monkeypatch.setattr("kouhai_bot.friend_requests.set_friend_add_request", fake_set_friend_add_request)
+    monkeypatch.setattr("sanwenyu.friend_requests.get_config", _cfg)
+    monkeypatch.setattr("sanwenyu.napcat.client._http_post", fake_http_post)
+    monkeypatch.setattr("sanwenyu.friend_requests.set_friend_add_request", fake_set_friend_add_request)
 
     asyncio.run(process_event(_friend_request(), spawn_handlers=False))
 
@@ -62,9 +62,9 @@ def test_friend_request_from_non_member_is_ignored(monkeypatch):
         calls.append(flag)
         return True
 
-    monkeypatch.setattr("kouhai_bot.friend_requests.get_config", _cfg)
-    monkeypatch.setattr("kouhai_bot.napcat.client._http_post", fake_http_post)
-    monkeypatch.setattr("kouhai_bot.friend_requests.set_friend_add_request", fake_set_friend_add_request)
+    monkeypatch.setattr("sanwenyu.friend_requests.get_config", _cfg)
+    monkeypatch.setattr("sanwenyu.napcat.client._http_post", fake_http_post)
+    monkeypatch.setattr("sanwenyu.friend_requests.set_friend_add_request", fake_set_friend_add_request)
 
     asyncio.run(process_event(_friend_request(), spawn_handlers=False))
 
@@ -81,9 +81,9 @@ def test_friend_request_member_lookup_failure_is_ignored(monkeypatch):
         calls.append(flag)
         return True
 
-    monkeypatch.setattr("kouhai_bot.friend_requests.get_config", _cfg)
-    monkeypatch.setattr("kouhai_bot.napcat.client._http_post", fake_http_post)
-    monkeypatch.setattr("kouhai_bot.friend_requests.set_friend_add_request", fake_set_friend_add_request)
+    monkeypatch.setattr("sanwenyu.friend_requests.get_config", _cfg)
+    monkeypatch.setattr("sanwenyu.napcat.client._http_post", fake_http_post)
+    monkeypatch.setattr("sanwenyu.friend_requests.set_friend_add_request", fake_set_friend_add_request)
 
     asyncio.run(process_event(_friend_request(), spawn_handlers=False))
 
@@ -97,8 +97,8 @@ def test_non_friend_request_is_ignored(monkeypatch):
         calls.append(flag)
         return True
 
-    monkeypatch.setattr("kouhai_bot.friend_requests.get_config", _cfg)
-    monkeypatch.setattr("kouhai_bot.friend_requests.set_friend_add_request", fake_set_friend_add_request)
+    monkeypatch.setattr("sanwenyu.friend_requests.get_config", _cfg)
+    monkeypatch.setattr("sanwenyu.friend_requests.set_friend_add_request", fake_set_friend_add_request)
 
     asyncio.run(process_event({"type": "request", "request_type": "group", "user_id": 456, "flag": "f"}, spawn_handlers=False))
 
@@ -121,10 +121,10 @@ def test_doubt_friend_request_from_service_group_member_is_approved(monkeypatch)
         calls.append({"flag": flag, "approve": approve})
         return True
 
-    monkeypatch.setattr("kouhai_bot.friend_requests.get_config", _cfg)
-    monkeypatch.setattr("kouhai_bot.friend_requests.get_doubt_friends_add_requests", fake_get_doubt_friends_add_requests)
-    monkeypatch.setattr("kouhai_bot.napcat.client._http_post", fake_http_post)
-    monkeypatch.setattr("kouhai_bot.friend_requests.set_doubt_friends_add_request", fake_set_doubt_friends_add_request)
+    monkeypatch.setattr("sanwenyu.friend_requests.get_config", _cfg)
+    monkeypatch.setattr("sanwenyu.friend_requests.get_doubt_friends_add_requests", fake_get_doubt_friends_add_requests)
+    monkeypatch.setattr("sanwenyu.napcat.client._http_post", fake_http_post)
+    monkeypatch.setattr("sanwenyu.friend_requests.set_doubt_friends_add_request", fake_set_doubt_friends_add_request)
 
     approved = asyncio.run(approve_doubt_friend_requests())
 
@@ -149,10 +149,10 @@ def test_doubt_friend_request_from_non_member_is_ignored(monkeypatch):
         calls.append(flag)
         return True
 
-    monkeypatch.setattr("kouhai_bot.friend_requests.get_config", _cfg)
-    monkeypatch.setattr("kouhai_bot.friend_requests.get_doubt_friends_add_requests", fake_get_doubt_friends_add_requests)
-    monkeypatch.setattr("kouhai_bot.napcat.client._http_post", fake_http_post)
-    monkeypatch.setattr("kouhai_bot.friend_requests.set_doubt_friends_add_request", fake_set_doubt_friends_add_request)
+    monkeypatch.setattr("sanwenyu.friend_requests.get_config", _cfg)
+    monkeypatch.setattr("sanwenyu.friend_requests.get_doubt_friends_add_requests", fake_get_doubt_friends_add_requests)
+    monkeypatch.setattr("sanwenyu.napcat.client._http_post", fake_http_post)
+    monkeypatch.setattr("sanwenyu.friend_requests.set_doubt_friends_add_request", fake_set_doubt_friends_add_request)
 
     approved = asyncio.run(approve_doubt_friend_requests())
 
@@ -171,10 +171,10 @@ def test_private_dispatch_uses_shared_service_group_member_check(monkeypatch):
         assert user_id == 456
         return True
 
-    monkeypatch.setattr("kouhai_bot.handlers.get_config", _cfg)
-    monkeypatch.setattr("kouhai_bot.handlers.is_service_group_member", fake_is_service_group_member)
+    monkeypatch.setattr("sanwenyu.handlers.get_config", _cfg)
+    monkeypatch.setattr("sanwenyu.handlers.is_service_group_member", fake_is_service_group_member)
     monkeypatch.setattr(
-        "kouhai_bot.handlers.registry.get",
+        "sanwenyu.handlers.registry.get",
         lambda name: SimpleNamespace(name="status", handler=fake_handler) if name == "status" else None,
     )
 

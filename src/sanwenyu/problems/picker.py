@@ -25,7 +25,7 @@ import cloudscraper
 
 # ── Config ──────────────────────────────────────────────────────────────
 
-STATE_DIR = os.path.expanduser("~/.kouhai-bot")
+STATE_DIR = os.path.expanduser("~/.SanWenYu")
 CACHE_DIR = os.path.join(STATE_DIR, "statements")
 GROUPS_DIR = os.path.join(STATE_DIR, "groups")
 os.makedirs(STATE_DIR, exist_ok=True)
@@ -232,17 +232,19 @@ def fetch_statement(problem: dict) -> object:
                     os.remove(cache_file)
                     # Fall through to re-process below
                 else:
-                    # Text-only problem, mark as processed and use as-is
-                    cached["_vl_processed"] = True
-                    with open(cache_file, "w") as f:
-                        json.dump(cached, f, ensure_ascii=False)
-                    return cached
+                    print(f"[{pid}] cache missing render_html, re-fetching",
+                          file=sys.stderr)
+                    os.remove(cache_file)
             except Exception as e:
                 print(f"[{pid}] dry-run failed ({e}), using cached version", file=sys.stderr)
                 if cached_changed:
                     with open(cache_file, "w") as f:
                         json.dump(cached, f, ensure_ascii=False)
                 return cached
+        elif not cached.get("render_html"):
+            print(f"[{pid}] cache missing render_html, re-fetching for image render",
+                  file=sys.stderr)
+            os.remove(cache_file)
         else:
             if cached_changed:
                 with open(cache_file, "w") as f:
@@ -254,11 +256,6 @@ def fetch_statement(problem: dict) -> object:
 
     if "error" in cf_result:
         print(f"Warning: {pid} cf_statement error: {cf_result['error']}", file=sys.stderr)
-        return None
-
-    # Filter: skip problems with non-formula images (diagrams)
-    if cf_result.get("has_non_formula_images"):
-        print(f"Warning: {pid} has non-formula images (diagrams), skipping", file=sys.stderr)
         return None
 
     # Filter: skip if any formula failed after retries
@@ -296,6 +293,9 @@ def fetch_statement(problem: dict) -> object:
     # Description: use VL-processed text (formulas converted to LaTeX inline)
     desc = cf_result.get("text", "")
     result["description"] = desc
+    if cf_result.get("render_html"):
+        result["render_html"] = cf_result["render_html"]
+    result["has_non_formula_images"] = bool(cf_result.get("has_non_formula_images"))
 
     # Extract Input spec from raw HTML
     inp_m = re.search(

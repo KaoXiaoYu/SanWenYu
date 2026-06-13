@@ -18,7 +18,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 ### 安装项目依赖
 
 ```bash
-cd kouhai-bot
+cd SanWenYu
 uv sync
 ```
 
@@ -62,8 +62,8 @@ NapCat 首次启动时需要扫码登录 QQ。登录成功后 token 会持久化
 
 ```bash
 # 测试导入
-cd kouhai-bot
-uv run python -c "from kouhai_bot.config import get_config; print(get_config().bot_qq)"
+cd SanWenYu
+uv run python -c "from sanwenyu.config import get_config; print(get_config().bot_qq)"
 
 # 运行测试
 uv run python -m pytest tests/ -v

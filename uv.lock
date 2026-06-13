@@ -380,7 +380,7 @@ wheels = [
 ]
 
 [[package]]
-name = "kouhai-bot"
+name = "SanWenYu"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

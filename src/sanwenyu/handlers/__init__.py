@@ -24,7 +24,7 @@ from ..napcat.client import (
     react_emoji,
 )
 
-logger = logging.getLogger("kouhai-bot.handlers")
+logger = logging.getLogger("SanWenYu.handlers")
 
 _PRIVATE_ALLOWED_COMMANDS = {
     "setproblem",

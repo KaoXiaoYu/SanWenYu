@@ -9,6 +9,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sys
 import time
 
@@ -22,7 +23,6 @@ from ..shared import (
     save_problem_card_ref,
     save_problem_summary,
     save_scoreboard,
-    snake_replace,
     summarize_problem,
     translate_sample_notes,
 )
@@ -38,9 +38,52 @@ from ...napcat.client import (
     send_private_msg,
 )
 from ...problems.picker import _normalize_sample_block
+from ...statement_render import (
+    image_message_from_path,
+    render_text_to_png,
+)
 from .submit import run_group_state_update
 
-logger = logging.getLogger("kouhai-bot.cmd.newproblem")
+logger = logging.getLogger("SanWenYu.cmd.newproblem")
+
+_PROBLEM_RENDER_VERSION = 2
+_PROBLEM_EMOJI_RE = re.compile(
+    "["
+    "\U0001F000-\U0001FAFF"
+    "\U0001FC00-\U0001FFFF"
+    "\u2600-\u27BF"
+    "]",
+    re.UNICODE,
+)
+_KEYCAP_RE = re.compile(r"([0-9#*])[\uFE0E\uFE0F]?\u20E3")
+_INLINE_MATH_RE = re.compile(r"\\\((.+?)\\\)", re.DOTALL)
+_DISPLAY_MATH_RE = re.compile(r"\\\[(.+?)\\\]", re.DOTALL)
+
+_NUMBER_TRANSLATION = {
+    **{ord(chr(0xFF10 + i)): str(i) for i in range(10)},
+    **{ord(chr(0x2460 + i)): str(i + 1) for i in range(20)},
+    **{ord(chr(0x2474 + i)): str(i + 1) for i in range(20)},
+    **{ord(chr(0x2488 + i)): str(i + 1) for i in range(20)},
+    **{ord(chr(0x2776 + i)): str(i + 1) for i in range(10)},
+    **{ord(chr(0x2780 + i)): str(i + 1) for i in range(10)},
+    **{ord(chr(0x278A + i)): str(i + 1) for i in range(10)},
+}
+
+
+def _sanitize_problem_content(text: str) -> str:
+    """Normalize MathJax delimiters and remove emoji-style number glyphs."""
+    value = _KEYCAP_RE.sub(r"\1", text or "")
+    value = value.translate(_NUMBER_TRANSLATION)
+    value = _DISPLAY_MATH_RE.sub(lambda m: f"$${m.group(1).strip()}$$", value)
+    value = _INLINE_MATH_RE.sub(lambda m: f"${m.group(1).strip()}$", value)
+    value = (
+        value
+        .replace("\uFE0E", "")
+        .replace("\uFE0F", "")
+        .replace("\u20E3", "")
+        .replace("\u200D", "")
+    )
+    return _PROBLEM_EMOJI_RE.sub("", value).strip()
 
 # ── Cooldown ────────────────────────────────────────────────────────────
 
@@ -131,10 +174,10 @@ async def enqueue_force_new_problem(
 # ── Picker path ─────────────────────────────────────────────────────────
 
 _PICKER_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "kouhai_bot", "problems", "picker.py",
+    os.path.dirname(__file__), "..", "..", "..", "sanwenyu", "problems", "picker.py",
 )
 _PICKER_PATH = os.path.abspath(os.path.normpath(_PICKER_PATH))
-_STATEMENTS_FALLBACK_DIR = os.path.expanduser("~/.kouhai-bot/statements")
+_STATEMENTS_FALLBACK_DIR = os.path.expanduser("~/.SanWenYu/statements")
 
 
 def _effective_rating_range(group_id: int) -> tuple[int, int]:
@@ -234,16 +277,19 @@ def _save_daily_msg(
     sample_messages: list[str],
     notes_message: str,
     snake_enabled: bool,
+    rendered_paths: list[str] | None = None,
     node_payload: dict | None = None,
     fwd_message_id: int | None = None,
 ) -> None:
     daily_msg = {
         **(node_payload or {}),
+        "render_version": _PROBLEM_RENDER_VERSION,
         "pid": pid,
         "post_msg": post_msg,
         "sample_messages": sample_messages,
         "notes_message": notes_message,
         "snake_enabled": snake_enabled,
+        "rendered_paths": rendered_paths or [],
     }
     if fwd_message_id is not None:
         daily_msg["fwd_message_id"] = fwd_message_id
@@ -289,10 +335,10 @@ def _build_sample_messages(stmt: dict) -> list[str]:
         normalized_output = _normalize_sample_block(sample_output).rstrip("\n")
         text = (
             f"样例 {idx}\n"
-            f"Input:\n{normalized_input}\n\n"
-            f"Output:\n{normalized_output}"
+            f"输入：\n{normalized_input}\n\n"
+            f"输出：\n{normalized_output}"
         )
-        lines.append(text)
+        lines.append(_sanitize_problem_content(text))
     return lines
 
 
@@ -306,10 +352,10 @@ async def _build_notes_message(stmt: dict) -> str:
     except Exception as e:
         logger.warning("Notes translation failed, skipping notes node: %s", e)
         return ""
-    final_notes = (translated_notes or normalized_notes).strip()
+    final_notes = (translated_notes or "").strip()
     if not final_notes:
         return ""
-    return f"样例解释：\n{final_notes}"
+    return _sanitize_problem_content(f"样例解释：\n{final_notes}")
 
 
 async def _send_problem_forward_card(
@@ -320,7 +366,24 @@ async def _send_problem_forward_card(
     snake_enabled: bool = True,
 ) -> tuple[int | None, dict]:
     cfg = get_config()
-    self_resp = await send_private_msg(cfg.bot_qq, build_plain_message(post_msg))
+    post_msg = _sanitize_problem_content(post_msg)
+    sample_messages = [_sanitize_problem_content(item) for item in sample_messages]
+    notes_message = _sanitize_problem_content(notes_message)
+
+    rendered_paths: list[str] = []
+
+    async def _send_text_node(text: str, slug: str) -> int | None:
+        try:
+            image_path = await render_text_to_png(text, group_id=group_id, slug=slug)
+            rendered_paths.append(image_path)
+            resp = await send_private_msg(cfg.bot_qq, image_message_from_path(image_path))
+            if resp:
+                return resp
+        except Exception as e:
+            logger.warning(f"[group_{group_id}] Render/send image node failed ({slug}): {e}")
+        return await send_private_msg(cfg.bot_qq, build_plain_message(text))
+
+    self_resp = await _send_text_node(post_msg, "problem")
     if not self_resp:
         return None, {}
 
@@ -342,7 +405,7 @@ async def _send_problem_forward_card(
 
     sample_msg_ids: list[int] = []
     for i, sample_msg in enumerate(sample_messages, 1):
-        sample_resp = await send_private_msg(cfg.bot_qq, build_plain_message(sample_msg))
+        sample_resp = await _send_text_node(sample_msg, f"sample-{i}")
         if sample_resp:
             sample_msg_ids.append(sample_resp)
         else:
@@ -350,7 +413,7 @@ async def _send_problem_forward_card(
 
     note_msg_id = None
     if notes_message:
-        note_resp = await send_private_msg(cfg.bot_qq, build_plain_message(notes_message))
+        note_resp = await _send_text_node(notes_message, "notes")
         if note_resp:
             note_msg_id = note_resp
         else:
@@ -370,6 +433,7 @@ async def _send_problem_forward_card(
         "sample_msg_ids": sample_msg_ids,
         "note_msg_id": note_msg_id,
         "snake_msg_id": snake_msg_id,
+        "rendered_paths": rendered_paths,
     }
     return fwd_resp, payload
 
@@ -489,7 +553,7 @@ async def _do_daily_post_locked(
             logger.warning(f"[group_{group_id}] Summary 1st attempt failed, retrying...")
             summary, model_tag = await summarize_problem(stmt_text, input_text, limits_text)
         if summary:
-            desc = summary.strip()
+            desc = _sanitize_problem_content(summary)
             save_problem_summary(group_id, pid, desc)
         else:
             logger.warning(f"[group_{group_id}] Summary failed after retry")
@@ -497,7 +561,7 @@ async def _do_daily_post_locked(
         logger.warning(f"[group_{group_id}] Summary error: {e}")
 
     # Step 4: Compose and deliver via merged-forward card
-    greeting = prefix if prefix else "中午好呀☀️ 先前题目已解出，来看看今天的每日一题吧！"
+    greeting = prefix if prefix else "中午好，先前题目已解出，来看看今天的每日一题吧！"
     post_msg = f"{greeting}\n\n{desc}" if desc else greeting
     if model_tag:
         post_msg += model_tag
@@ -505,7 +569,7 @@ async def _do_daily_post_locked(
     if reveal_text and "还没有发过题哦" not in reveal_text:
         post_msg = post_msg + "\n\n" + reveal_text
 
-    post_msg = snake_replace(post_msg)
+    post_msg = _sanitize_problem_content(post_msg)
 
     fwd_resp, node_payload = await _send_problem_forward_card(
         group_id=group_id,
@@ -516,7 +580,20 @@ async def _do_daily_post_locked(
     )
     if not fwd_resp:
         logger.error(f"[group_{group_id}] Problem forward-card send failed, falling back to direct")
-        ok = await send_group_msg(group_id, build_plain_message(post_msg))
+        ok = None
+        sent_any_image = False
+        for image_path in node_payload.get("rendered_paths", []):
+            try:
+                ok = await send_group_msg(group_id, image_message_from_path(image_path))
+            except Exception as e:
+                logger.warning(f"[group_{group_id}] Direct rendered image send failed: {e}")
+            if not ok:
+                break
+            sent_any_image = True
+        if not ok and not sent_any_image:
+            ok = await send_group_msg(group_id, build_plain_message(post_msg))
+        elif sent_any_image:
+            ok = ok or True
         if ok:
             await _send_high_difficulty_notice_group(group_id, picked_state)
             await _commit_problem_state(group_id, picked_state)
@@ -528,6 +605,7 @@ async def _do_daily_post_locked(
                     sample_messages=sample_messages,
                     notes_message=notes_message,
                     snake_enabled=True,
+                    rendered_paths=node_payload.get("rendered_paths", []),
                     node_payload=node_payload,
                 )
             except Exception as e:
@@ -556,6 +634,7 @@ async def _do_daily_post_locked(
             sample_messages=sample_messages,
             notes_message=notes_message,
             snake_enabled=True,
+            rendered_paths=node_payload.get("rendered_paths", []),
             node_payload=node_payload,
             fwd_message_id=fwd_resp,
         )

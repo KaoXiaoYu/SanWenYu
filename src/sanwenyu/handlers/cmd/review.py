@@ -19,7 +19,7 @@ from ...eventlog import EVENT_META_KEY
 from ...private_judge import GROUP_SCOPE, PRIVATE_SCOPE, get_private_review_pid
 from .submit import enqueue_review_request
 
-logger = logging.getLogger("kouhai-bot.cmd.review")
+logger = logging.getLogger("SanWenYu.cmd.review")
 _UNKNOWN_CARD_REPLY = (
     "这条引用我认不出对应哪道题哦，可能不是题目卡片，"
     "也可能卡片太久了～你直接发 /review 的话，我就默认复盘最近一道已通过题目。"

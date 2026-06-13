@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot import main
+from sanwenyu import main
 
 
 def test_bot_log_path_uses_group_and_local_date(tmp_path):
@@ -23,8 +23,9 @@ def test_start_reports_already_running_without_spawning():
     cfg = SimpleNamespace(napcat_ws_port=8097, current_group=123456, data_dir="/tmp/data")
     printed = []
 
-    with patch("kouhai_bot.main.get_config", return_value=cfg), \
-            patch("kouhai_bot.main._port_has_listener", return_value=True), \
+    with patch("sanwenyu.main.get_config", return_value=cfg), \
+            patch("sanwenyu.main._current_port_listeners", return_value={1111}), \
+            patch("sanwenyu.main._port_has_listener", return_value=True), \
             patch("builtins.print", side_effect=printed.append):
         main.start()
 
@@ -41,10 +42,10 @@ def test_restart_reports_detached_start_status(tmp_path):
     log_path = tmp_path / "logs" / "123456789" / "2026-05-16.log"
     printed = []
 
-    with patch("kouhai_bot.main.get_config", return_value=cfg), \
-            patch("kouhai_bot.main._stop_existing_instance_on_port", return_value=True), \
-            patch("kouhai_bot.main._spawn_detached_bot", return_value=(4321, log_path)), \
-            patch("kouhai_bot.main._wait_for_port_bind", return_value=True), \
+    with patch("sanwenyu.main.get_config", return_value=cfg), \
+            patch("sanwenyu.main._stop_existing_instance_on_port", return_value=True), \
+            patch("sanwenyu.main._spawn_detached_bot", return_value=(4321, log_path)), \
+            patch("sanwenyu.main._wait_for_port_bind", return_value=True), \
             patch("builtins.print", side_effect=printed.append):
         main.restart()
 
@@ -62,8 +63,8 @@ def test_stop_reports_if_instance_was_stopped():
     cfg = SimpleNamespace(napcat_ws_port=8098, current_group=123456, data_dir="/tmp/data")
     printed = []
 
-    with patch("kouhai_bot.main.get_config", return_value=cfg), \
-            patch("kouhai_bot.main._stop_existing_instance_on_port", return_value=True), \
+    with patch("sanwenyu.main.get_config", return_value=cfg), \
+            patch("sanwenyu.main._stop_existing_instance_on_port", return_value=True), \
             patch("builtins.print", side_effect=printed.append):
         main.stop()
 
@@ -78,9 +79,9 @@ def test_status_reports_idle_when_port_is_free():
     cfg = SimpleNamespace(napcat_ws_port=8100, current_group=123456, data_dir="/tmp/data")
     printed = []
 
-    with patch("kouhai_bot.main.get_config", return_value=cfg), \
-            patch("kouhai_bot.main._current_port_listeners", return_value=set()), \
-            patch("kouhai_bot.main._port_has_listener", return_value=False), \
+    with patch("sanwenyu.main.get_config", return_value=cfg), \
+            patch("sanwenyu.main._current_port_listeners", return_value=set()), \
+            patch("sanwenyu.main._port_has_listener", return_value=False), \
             patch("builtins.print", side_effect=printed.append):
         main.status()
 
@@ -97,11 +98,11 @@ def test_status_reports_current_worktree_listener():
     printed = []
     repo_root = Path("/repo/current")
 
-    with patch("kouhai_bot.main.get_config", return_value=cfg), \
-            patch("kouhai_bot.main._current_port_listeners", return_value={2201}), \
-            patch("kouhai_bot.main._port_has_listener", return_value=True), \
-            patch("kouhai_bot.main._repo_root", return_value=repo_root), \
-            patch("kouhai_bot.main._pid_cwd", return_value=repo_root), \
+    with patch("sanwenyu.main.get_config", return_value=cfg), \
+            patch("sanwenyu.main._current_port_listeners", return_value={2201}), \
+            patch("sanwenyu.main._port_has_listener", return_value=True), \
+            patch("sanwenyu.main._repo_root", return_value=repo_root), \
+            patch("sanwenyu.main._pid_cwd", return_value=repo_root), \
             patch("builtins.print", side_effect=printed.append):
         main.status()
 
@@ -118,11 +119,11 @@ def test_status_reports_other_listener_when_worktree_differs():
     cfg = SimpleNamespace(napcat_ws_port=8102, current_group=123456, data_dir="/tmp/data")
     printed = []
 
-    with patch("kouhai_bot.main.get_config", return_value=cfg), \
-            patch("kouhai_bot.main._current_port_listeners", return_value={3311, 3312}), \
-            patch("kouhai_bot.main._port_has_listener", return_value=True), \
-            patch("kouhai_bot.main._repo_root", return_value=Path("/repo/current")), \
-            patch("kouhai_bot.main._pid_cwd", side_effect=[Path("/repo/other"), Path("/repo/elsewhere")]), \
+    with patch("sanwenyu.main.get_config", return_value=cfg), \
+            patch("sanwenyu.main._current_port_listeners", return_value={3311, 3312}), \
+            patch("sanwenyu.main._port_has_listener", return_value=True), \
+            patch("sanwenyu.main._repo_root", return_value=Path("/repo/current")), \
+            patch("sanwenyu.main._pid_cwd", side_effect=[Path("/repo/other"), Path("/repo/elsewhere")]), \
             patch("builtins.print", side_effect=printed.append):
         main.status()
 
@@ -140,9 +141,9 @@ def test_status_reports_pidless_listener_as_occupied():
     cfg = SimpleNamespace(napcat_ws_port=8103, current_group=123456, data_dir="/tmp/data")
     printed = []
 
-    with patch("kouhai_bot.main.get_config", return_value=cfg), \
-            patch("kouhai_bot.main._current_port_listeners", return_value=set()), \
-            patch("kouhai_bot.main._port_has_listener", return_value=True), \
+    with patch("sanwenyu.main.get_config", return_value=cfg), \
+            patch("sanwenyu.main._current_port_listeners", return_value=set()), \
+            patch("sanwenyu.main._port_has_listener", return_value=True), \
             patch("builtins.print", side_effect=printed.append):
         main.status()
 
@@ -159,8 +160,8 @@ def test_spawn_detached_bot_uses_nohup_and_group_daily_log(tmp_path):
     repo_root = tmp_path / "repo"
     repo_root.mkdir()
 
-    with patch("kouhai_bot.main.subprocess.Popen", return_value=fake_proc) as popen, \
-            patch("kouhai_bot.main._repo_root", return_value=repo_root):
+    with patch("sanwenyu.main.subprocess.Popen", return_value=fake_proc) as popen, \
+            patch("sanwenyu.main._repo_root", return_value=repo_root):
         pid, log_path = main._spawn_detached_bot(8099, 654321, str(tmp_path))
 
     assert pid == 2468
@@ -170,7 +171,7 @@ def test_spawn_detached_bot_uses_nohup_and_group_daily_log(tmp_path):
 
     args = popen.call_args.args[0]
     kwargs = popen.call_args.kwargs
-    assert args == ["nohup", sys.executable, "-m", "kouhai_bot.worker"]
+    assert args == ["nohup", sys.executable, "-m", "sanwenyu.worker"]
     assert kwargs["cwd"] == str(repo_root)
     assert kwargs["stdin"] is main.subprocess.DEVNULL
     assert kwargs["stderr"] is main.subprocess.STDOUT

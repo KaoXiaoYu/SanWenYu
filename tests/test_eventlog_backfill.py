@@ -10,9 +10,9 @@ from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from kouhai_bot.achievements import build_achievement_report
-from kouhai_bot.eventlog import TZ, load_events
-from kouhai_bot.eventlog_backfill import backfill_command_events
+from sanwenyu.achievements import build_achievement_report
+from sanwenyu.eventlog import TZ, load_events
+from sanwenyu.eventlog_backfill import backfill_command_events
 
 
 GID = 123456
@@ -87,7 +87,7 @@ def test_backfill_command_events_from_scoreboard_history():
             },
         })
 
-        with patch("kouhai_bot.config._config", _TestConfig(data_dir)):
+        with patch("sanwenyu.config._config", _TestConfig(data_dir)):
             summary = backfill_command_events(
                 group_ids=[GID],
                 since=datetime(2026, 5, 14, 4, 0, tzinfo=TZ),

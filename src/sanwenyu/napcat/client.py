@@ -18,7 +18,7 @@ from websockets.server import ServerConnection
 
 from ..config import get_config
 
-logger = logging.getLogger("kouhai-bot.napcat")
+logger = logging.getLogger("SanWenYu.napcat")
 
 # ── HTTP API ────────────────────────────────────────────────────────────
 

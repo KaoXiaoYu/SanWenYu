@@ -12,7 +12,7 @@ from ..config import get_config
 from ..handlers.shared import get_problem_summary, load_scoreboard
 from .store import PENDING, bundle_exists, save_bundle
 
-logger = logging.getLogger("kouhai-bot.annotations")
+logger = logging.getLogger("SanWenYu.annotations")
 
 
 def _now_iso() -> str:
